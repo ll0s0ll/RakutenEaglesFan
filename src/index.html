@@ -2,14 +2,166 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Hello World!</title>
-    <!-- https://electronjs.org/docs/tutorial/security#csp-meta-tag -->
+    <title>Rakuten eagles fan</title>
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+    <script type="text/javascript" src="jquery-3.3.1.min.js"></script>
+    <script type="text/javascript" src="jquery-ui.min.js"></script>
+    <script type="text/javascript" src="rakuten-fm-tohoku.js"></script>
+    <script type="text/javascript" src="yahoo-npb.js"></script>
+    <script type="text/javascript" src="app.js"></script>
+    <script type="text/javascript" src="renderer.js"></script>
+    <script type="text/javascript">
+      window.onload = function() {
+        App.init();
+        App.run();
+      }
+    </script>
+    <!--link href="jquery-ui.min.css" rel="stylesheet"-->
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <h1>Hello World!</h1>
-    We are using node <script>document.write(process.versions.node)</script>,
-    Chrome <script>document.write(process.versions.chrome)</script>,
-    and Electron <script>document.write(process.versions.electron)</script>.
+    <div id="networkStatusMessage" class="network-status">
+      <p class="network-status__message">Offline: インターネットに接続してください</p>
+    </div>
+    <div id="tabs">
+      <!-- 以下のulは、tabs widgetの指定に必要 -->
+      <ul style="display: none;">
+        <li><a href="#todaySection">今日の試合</a></li>
+        <li><a href="#cardsSection">パ・リーグ</a></li>
+        <li><a href="#standingsSection">順位表</a></li>
+        <li><a href="#rakutenFmTohokuSection">ラジオ</a></li>
+        <li><a href="#preferenceSection">設定</a></li>
+        <!--li><a href="javascript:App.quit()">終了</a></li-->
+      </ul>
+      <p class="menu"><a id="todaySectionMenu">今日の試合</a> | <a id="cardsSectionMenu">パ・リーグ</a> | <a id="standingsSectionMenu">順位表</a> | <a id="rakutenFmTohokuSectionMenu">ラジオ</a> | <a id="preferenceSectionMenu">設定</a> | <a id="quitMenu">終了</a></p>
+
+      <section id="todaySection" class="today-section section">
+        <p id="todaySectionTopErrorMsg" class="today-section__error-message error-message"></p>
+        <p id="todaySectionDetailErrorMsg" class="today-section__error-message error-message"></p>
+        <h2 class="today-section__h2"></h2>
+        <p id="todaySectionNoGame" class="today-section__no-game">今日の試合はありません</p>
+        <div id="todaysCard" class="today-section__card card"></div>
+        <table id="scoreBoard" class="today-section__score-board score-board">
+          <thead>
+            <tr></tr>
+          </thead>
+          <tbody>
+            <tr id="awayTeamScores"></tr>
+            <tr id="homeTeamScores"></tr>
+          </tbody>
+        </table>
+        <div id="todaysScorePlays" class="today-section__score-plays score-plays">
+          <h3 class="score-plays__h3">スコアプレイ</h3>
+          <ul class="score-plays__ul"></ul>
+        </div>
+        <footer class="today-section__footer footer">
+          <p class="footer__last-update last-update">更新時刻 <span id="todayLastUpdateText">N/A</span><br>
+          この情報は<a href="javascript:App.openSportsnavi()">Yahoo Japan Sportsnavi</a>より取得されています。</p>
+        </footer>
+      </section>
+
+      <section id="cardsSection" class="cards-section section">
+        <p id="cardsSectionErrorMsg" class="cards-section__error-message error-message"></p>
+        <h2 class="cards-section__h2"></h2>
+        <div id="cardsSectionContents" class="cards-section__contents cards-section-contents"></div>
+        <footer class="cards-section__footer footer">
+          <p class="footer__last-update last-update">更新時刻 <span id="cardsLastUpdateText">N/A</span><br>
+          この情報は<a href="javascript:App.openSportsnavi()">Yahoo Japan Sportsnavi</a>より取得されています。</p>
+        </footer>
+      </section>
+
+      <section id="standingsSection" class="standings-section section">
+        <p id="standingsSectionErrorMsg" class="standings-section__error-message error-message"></p>
+        <h2 class="standings-section__h2">順位表</h2>
+        <table class="standings-section__standings standings">
+          <thead>
+            <tr>
+              <th>順位</th>
+              <th>チーム名</th>
+              <th>勝</th>
+              <th>負</th>
+              <th>引</th>
+              <th>差</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+        <footer class="standings-section__footer footer">
+          <p class="footer__last-update last-update">更新日時 <span>N/A</span><br>この情報は<a href="javascript:App.openSportsnavi()">Yahoo Japan Sportsnavi</a>より取得されています。</p>
+        </footer>
+      </section>
+
+      <section id="rakutenFmTohokuSection" class="rakuten-fm-tohoku-section section">
+        <p id="rakutenFmTohokuSectionErrorMsg" class="rakuten-fm-tohoku-section__error-message error-message"></p>
+        <h2 class="rakuten-fm-tohoku-section__h2">Rakuten.FM TOHOKU 89.1MHz</h2>
+        <div class="rakuten-fm-tohoku-section__audio-player">
+          <audio id="audioPlayer" controls></audio>
+        </div>
+        <div class="rakuten-fm-tohoku-section__now-on-air now-on-air">
+          <h3 class="now-on-air__h3">NOW ON AIR</h3>
+          <div id="nowOnAirProgram"></div>
+        </div>
+        <footer class="rakuten-fm-tohoku-section__footer footer">
+          <p>この放送は<a href="JavaScript:App.openRakutenFm()">Rakuten.FM</a>より配信されています。</p>
+        </footer>
+      </section>
+
+      <section id="preferenceSection" class="preference-section section">
+        <p id="preferenceSectionErrorMsg" class="preference-section__error-message error-message"></p>
+        <h2 class="preference-section__h2">設定</h2>
+        <dl class="preference-section__dl">
+          <dt>全般</dt>
+          <dd class="preference-section__dd">
+            <label for="favoriteTeamSelect">ご贔屓チーム：</label>
+            <select id="favoriteTeamSelect">
+              <optgroup label="パ・リーグ">
+                <option value="7">西武</option>
+                <option value="8">日本ハム</option>
+                <option value="9">ロッテ</option>
+                <option value="11">オリックス</option>
+                <option value="12">ソフトバンク</option>
+                <option value="376">楽天</option>
+              </optgroup>
+              <optgroup label="セ・リーグ">
+                <option value="1">巨人</option>
+                <option value="2">ヤクルト</option>
+                <option value="3">ＤｅＮＡ</option>
+                <option value="4">中日</option>
+                <option value="5">阪神</option>
+                <option value="6">広島</option>
+              </optgroup>
+            </select>
+          </dd>
+          <dd class="preference-section__dd">
+            <label for="startPageSelect">起動時の画面：</label>
+            <select id="startPageSelect">
+              <option value="0">今日の試合</option>
+              <option value="1">パ・リーグ</option>
+              <option value="2">順位表</option>
+              <option value="3">ラジオ</option>
+              <option value="4">設定</option>
+            </select>
+          </dd>
+          <dd class="preference-section__dd">
+            <label for="updateFreqSlider">更新頻度：</label>
+            <input id="updateFreqSlider" type="range">
+            （<span id="updateFreqText"></span>分）
+          </dd>
+        </dl>
+        <dl class="preference-section__dl">
+          <dt>通知</dt>
+          <dd class="preference-section__dd"><input id="notificationSoundCheckbox" type="checkbox" name="notification" value="sound"> 通知音</dd>
+          <dd class="preference-section__dd"><input id="playballNotifCheckbox" type="checkbox" name="notification" value="playball"> 試合開始</dd>
+          <dd class="preference-section__dd"><input id="gamesetNotifCheckbox" type="checkbox" name="notification" value="gameset"> 試合終了</dd>
+          <dd class="preference-section__dd"><input id="inningNotifCheckbox" type="checkbox" name="notification" value="inning"> イニング終了時</dd>
+          <dd class="preference-section__dd"><input id="scorePlayNotifCheckbox" type="checkbox" name="notification" value="scorePlay"> スコアプレイ</dd>
+        </dl>
+        <p class="preference-section__buttons">
+          <input id="applyButton" type="button" name="applyButton" value="保存">
+          <input id="cancelButton" type="button" value="キャンセル">
+        </p>
+      </section>
+    </div>
   </body>
 </html>

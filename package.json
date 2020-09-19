@@ -1,16 +1,51 @@
 {
-  "name": "rakuteneaglesfan",
+  "name": "RakutenEaglesFan",
   "version": "1.0.0",
-  "description": "東北楽天ゴールデンイーグルスの試合結果を表示するアプリケーションです。",
+  "description": "東北楽天ゴールデンイーグルスを応援するアプリケーションです。",
+  "homepage": "https://github.com/ll0s0ll/rakuteneaglesfan",
   "main": "src/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron ."
+    "build": "electron-builder",
+    "start": "electron .",
+    "test": "mocha",
+    "test_dev": "mocha --reporter dot private/test.js"
   },
-  "author": "ShunITO",
-  "license": "ISC",
+  "author": "Shun Ito",
+  "license": "GPL-1.0-or-later",
   "devDependencies": {
     "electron": "^9.0.5",
-    "standard": "*"
+    "electron-builder": "^22.7.0",
+    "jsdom": "^16.4.0",
+    "mocha": "^8.1.1",
+    "chai": "^4.2.0",
+    "selenium-webdriver": "^3.6.0",
+    "semistandard": {
+      "ignore": [
+        "/private/",
+        "/test/"
+      ]
+    },
+    "spectron": "^11.1.0"
+  },
+  "dependencies": {
+    "hls.js": "^0.14.0"
+  },
+  "build": {
+    "appId": "io.github.ll0s0ll.rakuteneaglesfan",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "assets",
+      "src",
+      "package.json",
+      "package-lock.json"
+    ],
+    "mac": {
+      "icon": "assets/rakuteneaglesfan.icns",
+      "target": [
+        "dmg"
+      ]
+    }
   }
 }

@@ -1,0 +1,539 @@
+body {
+  margin: 0px;
+  padding: 0px;
+  font-size:0.8em;
+}
+
+.network-status {
+  display: none;
+  width: 350px;
+  height: 15px;
+  text-align: center;
+  position: absolute;
+  z-index: 2;
+  top: 0px;
+  left: 0px;
+  background-color: #FFFFFF;
+}
+
+.network-status__message {
+  margin: 1px;
+  padding: 0px;
+  font-size: 0.8em;
+  font-style: italic;
+  color: red;
+}
+
+.error-message {
+  /* display: none; */
+  width: 350px;
+  height: 15px;
+  text-align: center;
+  position: absolute;
+  z-index: 1;
+  top: 1px;
+  left: 0px;
+
+  display: none;
+  /* margin: 1px; */
+  padding: 0px;
+  font-size: 0.8em;
+  font-style: italic;
+  color: red;
+}
+
+.section {
+  display: none;
+  width: 350px;
+  padding: 0px;
+}
+
+.menu {
+  width: 350px;
+  margin: 15px 0px;
+  padding: 0px 0px 0px 0px;
+  text-align: center;
+  font-size: 1.0em;
+}
+
+.today-section {
+  /* display: none;
+  width: 350px;
+  margin: 0px;
+  padding: 0px; */
+}
+
+.today-section__h2 {
+  font-size: 1.4em;
+  text-align: center;
+}
+
+.today-section__card {
+  width: 300px;
+  margin: 15px 25px;
+}
+
+.today-section__score-board {
+  margin: 15px 15px;
+}
+
+
+.today-section__score-plays {
+  margin: 15px 0px;
+}
+
+.today-section__no-game {
+  display: none;
+  width: 350px;
+  height: 160px;
+  margin: 0px;
+  padding-top: 140px;
+  text-align: center;
+  font-style: italic;
+  background-position: center;
+  background-size: 240px 240px;
+  background-repeat: no-repeat;
+  background-color:rgba(255, 255, 255, 0.95);
+  background-blend-mode:lighten;
+}
+
+.today-section__footer {
+  margin: 0px 0px 10px 0px;
+}
+
+.today-section__error-message {
+  margin: 0px;
+}
+
+.score-board {
+  width: 320px;
+  text-align: center;
+  font-size: 1.0em;
+  border-collapse: collapse;
+}
+
+.score-board th {
+  border: 1px solid #D3D3D3;
+  background-color: #F9F9F9F9;
+}
+
+.score-board td {
+  border: 1px solid #D3D3D3;
+}
+
+.score-board__team-name {
+  font-size: 0.9em;
+  font-weight: bold;
+  text-align: left;
+  padding-left: 5px;
+}
+
+.score-board__total-score {
+  font-weight: bold;
+}
+
+.score-plays {
+  /* 初めは隠しておく*/
+  display: none;
+}
+
+.score-plays__h3 {
+  font-size: 1.1em;
+  margin: 25px 15px 0px 15px;
+  padding: 0px 0px 0px 5px;
+  border-bottom: 1px solid #D3D3D3;
+}
+
+.score-plays__ul {
+  width: 320px;
+  margin: 0px 15px;
+  padding: 0px 0px;
+  list-style: none;
+}
+
+.score-plays__li {
+  margin: 0px 0px;
+  padding: 10px 5px 10px 5px;
+  border-bottom: 1px solid #D3D3D3;
+  font-size: 0.95em;
+  /* background-position: right 15px top 15px;
+  background-size: 27px 27px;
+  background-repeat: no-repeat; */
+  background-position: center;
+  background-size: 50px 50px;
+  background-repeat: no-repeat;
+  background-color:rgba(255, 255, 255, 0.85);
+  background-blend-mode:lighten;
+}
+
+.footer {
+  width: 350px;
+}
+
+.footer__last-update {
+  margin: 0px;
+}
+
+.cards-section {
+  margin: 0px 0px;
+}
+
+.cards-section__h2 {
+  text-align: center;
+  font-size: 1.4em;
+}
+
+.cards-section__contents  {
+  margin: 0px;
+}
+
+.cards-section__footer {
+  margin: 0px 0px 10px 0px;
+}
+
+.cards-section__error-message {
+  margin: 0px;
+}
+
+.cards-section-contents {
+  height: 300px;
+}
+
+.cards-section-contents__cards {
+  margin: 0px auto;
+}
+
+.cards-section-contents__no-game {
+  height: 160px;
+  padding-top: 140px;
+  font-style: italic;
+  text-align: center;
+  background-position: center;
+  background-size: 240px 240px;
+  background-repeat: no-repeat;
+  background-color:rgba(255, 255, 255, 0.95);
+  background-blend-mode:lighten;
+}
+
+.cards {
+  width: 300px;
+  height: 300px;
+  padding: 0px;
+  list-style: none;
+}
+
+.cards__card  {
+  margin: 15px 0px;
+}
+
+.card {
+  width: 300px;
+  height: 90px;
+  list-style: none;
+}
+
+.card__team {
+  margin: 0px;
+}
+
+.card__game {
+  margin: 0px;
+}
+
+.team {
+  display: inline-block;
+  vertical-align: middle;
+  text-align: center;
+  width:30%;
+  /* height:90px; vertical-alignを効かせるため設定しない */
+  /*background: center top / 30px 30px no-repeat;*/
+  background-position: center top;
+  background-size: 35px 35px;
+  background-repeat: no-repeat;
+}
+
+.team__team-name {
+   margin: 0px 0px 0px 0px;
+   padding-top: 35px;
+   font-size: 1.1em;
+   font-weight:bold;
+}
+
+.team__pitchers {
+  margin: 0px;
+}
+
+.pitchers {
+  list-style: none;
+  padding: 0px;
+  font-size: 0.9em;
+}
+
+.game {
+  display: inline-block;
+  width: 40%;
+  /* height: 90px; vertical-alignを効かせるため設定しない  */
+  vertical-align: middle;
+  text-align: center;
+}
+
+.game__venue {
+  margin: 0px;
+  padding: 0px;
+  font-size: 0.9em;
+}
+
+.game__score {
+  margin: 0.1em 0;
+  padding: 0px;
+  font-size: 1.4em;
+  font-weight:bold;
+}
+
+.game__scheduled-starttime {
+  margin: 0.1em 0;
+  padding: 0px;
+}
+
+.game__status {
+  margin: 0px;
+  padding: 0px;
+}
+
+.last-update {
+  text-align: center;
+  font-size: 0.8em;
+  font-style: italic;
+  color: #999999;
+}
+
+.standings-section {
+  /* display: none;
+  width: 350px;
+  margin: 0px;
+  padding: 0px; */
+}
+
+.standings-section__h2 {
+  font-size: 1.4em;
+  text-align: center;
+}
+
+.standings-section__standings {
+  margin: 15px 15px;
+}
+
+.standings-section__footer {
+    margin: 0px 0px 10px 0px;
+}
+
+.standings-section__error-message {
+  margin: 0px;
+}
+
+.standings {
+  width: 320px;
+  height: 200px;
+  text-align: center;
+  font-size: 1.0em;
+  border-collapse: collapse;
+}
+
+.standings th {
+  border: 1px solid #D3D3D3;
+  background-color: #F9F9F9F9;
+}
+
+.standings td {
+  border: 1px solid #D3D3D3;
+}
+
+.standings__favoriteTeam {
+  background-color: #FFE8E8;
+}
+
+.standings__standing {
+  font-weight: bold;
+}
+
+.standings__team-name {
+  font-size: 0.9em;
+  font-weight: bold;
+  text-align: left;
+  padding-left: 5px;
+}
+
+.rakuten-fm-tohoku-section {
+  /* display: none;
+  width: 350px;
+  margin: 0px;
+  padding: 0px; */
+}
+
+.rakuten-fm-tohoku-section__h2 {
+  text-align: center;
+  font-size: 1.4em;
+}
+
+.rakuten-fm-tohoku-section__audio-player {
+  margin: 0px 0px;
+  text-align: center;
+}
+
+.rakuten-fm-tohoku-section__now-on-air {
+  margin: 10px 20px;
+}
+
+.rakuten-fm-tohoku-section__footer {
+  margin: 0px 0px 10px 0px;
+  text-align: center;
+  font-size: 0.8em;
+  font-style: italic;
+  color: #999999;
+}
+
+.rakuten-fm-tohoku-section__error-message {
+  margin: 0px;
+}
+
+.now-on-air {
+  height: 250px;
+}
+
+.now-on-air__h3 {
+  margin: 5px 0px;
+  padding: 0px;
+  font-size: 1.1em;
+  /* font-size: 2.5em; */
+  /* font-weight: bold; */
+}
+
+.now-on-air__h4 {
+  margin: 0px;
+  padding: 0px;
+  /* font-size: 2.5em; */
+  /* font-weight: bold; */
+}
+
+.now-on-air__term {
+  margin: 0px 0px;
+  font-size: 1.0em;
+}
+
+.now-on-air__content {
+  height: 165px;
+  margin: 10px 0px;
+  font-size: 1.0em;
+  overflow-y: scroll;
+}
+
+.now-on-air__no-program {
+  /* font-size: 0.8em; */
+  /* font-style: italic; */
+}
+
+.status__message {
+  display: none;
+  margin: 1px;
+  padding: 0px;
+  font-size: 0.8em;
+  font-style: italic;
+  color: red;
+}
+
+
+.preference-section {
+  /* display: none;
+  width: 350px;
+  margin: 0px 0px 10px 0px; */
+}
+
+.preference-section__h2 {
+  text-align: center;
+}
+
+.preference-section__dl {
+  margin: 15px 0px 15px 30px;
+  font-size: 1.1em;
+}
+
+.preference-section__dd {
+  margin: 5px 0px 5px 25px;
+}
+
+.preference-section__buttons {
+  margin: 5px 0px 5px 25px;
+}
+
+.preference-section__error-message {
+  margin: 0px;
+}
+
+.team1 {
+  background-image: url(../assets/img/teamLogos/1.png);
+  /* background-image: url(../assets/img/teamLogos/G.png); */
+}
+.team2 {
+  background-image: url(../assets/img/teamLogos/2.png);
+  /* background-image: url(../assets/img/teamLogos/S.png); */
+}
+
+.team3 {
+  background-image: url(../assets/img/teamLogos/3.png);
+  /* background-image: url(../assets/img/teamLogos/DB.png); */
+}
+
+.team4 {
+  background-image: url(../assets/img/teamLogos/4.png);
+  /* background-image: url(../assets/img/teamLogos/D.png); */
+}
+
+.team5 {
+  background-image: url(../assets/img/teamLogos/5.png);
+  /* background-image: url(../assets/img/teamLogos/T.png); */
+}
+
+.team6 {
+  background-image: url(../assets/img/teamLogos/6.png);
+  /* background-image: url(../assets/img/teamLogos/C.png); */
+}
+
+.team7 {
+  background-image: url(../assets/img/teamLogos/7.png);
+  /* background-image: url(../assets/img/teamLogos/L.png); */
+}
+
+.team8 {
+  background-image: url(../assets/img/teamLogos/8.png);
+  /* background-image: url(../assets/img/teamLogos/F.png); */
+}
+
+.team9 {
+  background-image: url(../assets/img/teamLogos/9.png);
+  /* background-image: url(../assets/img/teamLogos/M.png); */
+}
+
+.team11 {
+  background-image: url(../assets/img/teamLogos/11.png);
+  /* background-image: url(../assets/img/teamLogos/Bs.png); */
+}
+
+.team12 {
+  background-image: url(../assets/img/teamLogos/12.png);
+  /* background-image: url(../assets/img/teamLogos/H.png); */
+}
+
+.team376 {
+  background-image: url(../assets/img/teamLogos/376.png);
+  /* background-image: url(../assets/img/teamLogos/E.png); */
+}
+
+/* パシフィックリーグ */
+.team15 {
+  background-image: url(../assets/img/teamLogos/Pl.png);
+}
+
+/* セントラルリーグ */
+.team16 {
+  background-image: url(../assets/img/teamLogos/Cl.png);
+}
