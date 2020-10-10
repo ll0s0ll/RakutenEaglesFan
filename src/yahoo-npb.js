@@ -620,6 +620,9 @@ class YahooNPBCard {
       case '試合中止':
         status = YahooNPBCard.statuses.cancel;
         break;
+      case 'ノーゲーム':
+        status = YahooNPBCard.statuses.cancel;
+        break;
       default:
         if (this.status.match(/^(\d{1,2})回(表|裏)$/)) {
           status = YahooNPBCard.statuses.going;
@@ -656,7 +659,7 @@ class YahooNPBCard {
 
 // Static values
 YahooNPBCard.statuses = { before: 0, going: 1, over: 2, suspend: 3, cancel: 4 };
-YahooNPBCard.statusTexts = ['見どころ', 'スタメン', '試合終了', '中断中', '試合中止'];
+YahooNPBCard.statusTexts = ['見どころ', 'スタメン', '試合終了', '中断中', '試合中止', 'ノーゲーム'];
 
 /** スコアプレイに関するクラス */
 class YahooNPBScorePlay {
