@@ -83,9 +83,11 @@ const GUI = {
       li.appendChild(GUI.constructGameDiv(card));
       li.appendChild(GUI.constructTeamDiv(card.awayTeam));
 
-      if (card.league === 'セ・リーグ' && !YahooNPB.isPacificLeagueTeam(favoriteTeamId)) {
+      if (card.league.match(/セ・リーグ/) && !YahooNPB.isPacificLeagueTeam(favoriteTeamId)) {
         cardsUL.appendChild(li);
-      } else if (card.league === 'パ・リーグ' && YahooNPB.isPacificLeagueTeam(favoriteTeamId)) {
+      } else if (card.league.match(/パ・リーグ/) && YahooNPB.isPacificLeagueTeam(favoriteTeamId)) {
+        cardsUL.appendChild(li);
+      } else if (card.league.match(/日本シリーズ/)) {
         cardsUL.appendChild(li);
       }
     }
