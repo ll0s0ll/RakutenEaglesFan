@@ -39,20 +39,22 @@
         <p id="todaySectionTopErrorMsg" class="today-section__error-message error-message"></p>
         <p id="todaySectionDetailErrorMsg" class="today-section__error-message error-message"></p>
         <h2 class="today-section__h2"></h2>
-        <p id="todaySectionNoGame" class="today-section__no-game">今日の試合はありません</p>
-        <div id="todaysCard" class="today-section__card card"></div>
-        <table id="scoreBoard" class="today-section__score-board score-board">
-          <thead>
-            <tr></tr>
-          </thead>
-          <tbody>
-            <tr id="awayTeamScores"></tr>
-            <tr id="homeTeamScores"></tr>
-          </tbody>
-        </table>
-        <div id="todaysScorePlays" class="today-section__score-plays score-plays">
-          <h3 class="score-plays__h3">スコアプレイ</h3>
-          <ul class="score-plays__ul"></ul>
+        <div class="today-section__contents today-section-contents">
+          <p id="todaySectionNoGame" class="today-section__no-game">今日の試合はありません</p>
+          <div id="todaysCard" class="today-section__card card"></div>
+          <table id="scoreBoard" class="today-section__score-board score-board">
+            <thead>
+              <tr></tr>
+            </thead>
+            <tbody>
+              <tr id="awayTeamScores"></tr>
+              <tr id="homeTeamScores"></tr>
+            </tbody>
+          </table>
+          <div id="todaysScorePlays" class="today-section__score-plays score-plays">
+            <h3 class="score-plays__h3">スコアプレイ</h3>
+            <ul class="score-plays__ul"></ul>
+          </div>
         </div>
         <footer class="today-section__footer footer">
           <p class="footer__last-update last-update">更新時刻 <span id="todayLastUpdateText">N/A</span><br>
@@ -73,20 +75,22 @@
       <section id="standingsSection" class="standings-section section">
         <p id="standingsSectionErrorMsg" class="standings-section__error-message error-message"></p>
         <h2 class="standings-section__h2">順位表</h2>
-        <table class="standings-section__standings standings">
-          <thead>
-            <tr>
-              <th>順位</th>
-              <th>チーム名</th>
-              <th>勝</th>
-              <th>負</th>
-              <th>引</th>
-              <th>差</th>
-            </tr>
-          </thead>
-          <tbody>
-          </tbody>
-        </table>
+        <div class="standings-section__contents standings-section-contents">
+          <table class="standings-section__standings standings">
+            <thead>
+              <tr>
+                <th>順位</th>
+                <th>チーム名</th>
+                <th>勝</th>
+                <th>負</th>
+                <th>引</th>
+                <th>差</th>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+        </div>
         <footer class="standings-section__footer footer">
           <p class="footer__last-update last-update">更新日時 <span>N/A</span><br>この情報は<a href="javascript:App.openSportsnavi()">Yahoo Japan Sportsnavi</a>より取得されています。</p>
         </footer>

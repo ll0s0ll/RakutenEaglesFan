@@ -1,3 +1,4 @@
+'use strict';
 /* global electron GUI Notification RakutenFmTohoku YahooNPB YahooNPBCard localStorage */
 
 // オブジェクト名を取得
@@ -264,7 +265,7 @@ const App = {
       }, 5 * 1000);
     }
   },
-
+  /*
   calcDetailPageUpdateTime: function (card, nowMilliSec) {
     //
     let updateTime;
@@ -285,7 +286,7 @@ const App = {
 
     return updateTime;
   },
-
+  */
   execProtocol: function (url) {
     electron.shell.openExternal(url);
   },
@@ -293,8 +294,8 @@ const App = {
   fetchDetailPageAsync: function (card) {
     //
     return new Promise((resolve, reject) => {
-      if (!card) {
-        resolve(null);
+      if (!card || !card.detailPageUrl) {
+        resolve({ scoreBoard: null, scorePlays: [], startingMembers: null });
         return;
       }
 
@@ -317,11 +318,8 @@ const App = {
         return;
       }
 
-      const url = card.detailPageUrl;
-      // console.log(url)
-
       let buf;
-      const request = electron.node.https.request(url, {}, (res) => {
+      const request = electron.node.https.request(card.detailPageUrl, {}, (res) => {
         // res.setEncoding('utf8');
         res.on('data', (chunk) => {
           // console.log(`BODY: ${chunk}`);
@@ -515,7 +513,6 @@ const App = {
     if (App.preferences.playballNotification &&
       App.currentStatus === YahooNPBCard.statuses.before &&
       currentStatus === YahooNPBCard.statuses.going) {
-      console.log('[Playball]');
       App.notifyPlayBall(card);
     }
 
@@ -523,7 +520,6 @@ const App = {
     if (App.preferences.gamesetNotification &&
         App.currentStatus !== YahooNPBCard.statuses.over &&
         currentStatus === YahooNPBCard.statuses.over) {
-      console.log('[Gameset]');
       App.notifyGameSet(card);
     }
 
@@ -533,7 +529,7 @@ const App = {
       // 起動直後対策
       if (App.notifiedScorePlays === undefined) {
         App.notifiedScorePlays = card.scorePlays;
-        return;
+        // return;
       }
 
       // 取得したスコアプレーから、通知済みとして保存されていないものを探して、通知する。
@@ -652,10 +648,15 @@ const App = {
         //
         GUI.today.hideTopPageError();
 
-        const favoriteTeamCard = YahooNPBCard.findCardByTeamId(
+        var favoriteTeamCard = YahooNPBCard.findCardByTeamId(
           topPageData.cards,
           App.preferences.favoriteTeamId
         );
+
+        if (favoriteTeamCard && !favoriteTeamCard.isTodaysCard()) {
+          favoriteTeamCard = null;
+        }
+
         this.updateDetailAsync(favoriteTeamCard, nowMilliSec, isForceUpdate)
           .then((card) => {
             try {
@@ -673,14 +674,28 @@ const App = {
             GUI.today.showDetailPageError(e, App.isDebug, App.nextDetailPageUpdateTime);
           });
 
+        return topPageData;
+      })
+      .then((topPageData) => {
         try {
-          GUI.renderCardsSection(topPageData.cards,
+          const favoriteLeagueCards = [];
+          for (const card of topPageData.cards) {
+            if (!card.isTodaysCard()) continue;
+
+            if (card.homeTeam.isSameLeague(App.preferences.favoriteTeamId) ||
+                card.awayTeam.isSameLeague(App.preferences.favoriteTeamId)) {
+              favoriteLeagueCards.push(card);
+            }
+          }
+
+          GUI.CardsSection.render(
+            favoriteLeagueCards,
             nowMilliSec,
             App.preferences.favoriteTeamId,
             App.isDebug);
         } catch (e) {
           console.log(e);
-          GUI.cards.showErrorMessage(e, App.isDebug, App.nextScoreUpdateTime);
+          GUI.CardsSection.showErrorMessage(e, App.isDebug, App.nextScoreUpdateTime);
         }
 
         try {
@@ -693,7 +708,7 @@ const App = {
       .catch((e) => {
         console.log(e);
         GUI.today.showTopPageError(e, App.isDebug, App.nextScoreUpdateTime);
-        GUI.cards.showErrorMessage(e, App.isDebug, App.nextScoreUpdateTime);
+        GUI.CardsSection.showErrorMessage(e, App.isDebug, App.nextScoreUpdateTime);
         GUI.standingsSection.showErrorMessage(e, App.isDebug, App.nextScoreUpdateTime);
       });
   },
@@ -717,8 +732,8 @@ const App = {
           .then(({ scoreBoard, scorePlays, startingMembers }) => {
             card.scoreBoard = scoreBoard;
             card.scorePlays = scorePlays;
-            card.homeTeam.startingMember = startingMembers.homeTeamStartingMember;
-            card.awayTeam.startingMember = startingMembers.awayTeamStartingMember;
+            card.homeTeam.startingMember = startingMembers ? startingMembers.homeTeamStartingMember : null;
+            card.awayTeam.startingMember = startingMembers ? startingMembers.awayTeamStartingMember : null;
             resolve(card);
           })
           .catch((e) => {

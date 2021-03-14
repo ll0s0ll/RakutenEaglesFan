@@ -4,7 +4,7 @@ const assert = require('chai').assert;
 const fs = require('fs');
 const { JSDOM } = require('jsdom');
 
-const { YahooNPB, YahooNPBCard, YahooNPBScorePlay } = require('../src/yahoo-npb.js');
+const { YahooNPB, YahooNPBCard, YahooNPBScorePlay, YahooNPBTeam} = require('../src/yahoo-npb.js');
 
 describe('YahooNPB', function () {
   describe('Top page tests', function () {
@@ -26,67 +26,73 @@ describe('YahooNPB', function () {
         // console.log(cards);
 
         const card1 = new YahooNPBCard();
+        card1.date = '7月5日';
+        card1.kind = 'セ・リーグ';
         card1.status = '見どころ';
-        card1.homeTeam = { team: '広島', id: 6, players: ['(予)遠藤'], score: undefined };
-        card1.awayTeam = { team: '阪神', id: 5, players: ['(予)西勇'], score: undefined };
+        card1.homeTeam = { team: '広島', id: 6, players: ['(予)遠藤'], score: undefined, startingMember: [] };
+        card1.awayTeam = { team: '阪神', id: 5, players: ['(予)西勇'], score: undefined, startingMember: [] };
         card1.scoreBoard = undefined;
         card1.scorePlays = undefined;
-        card1.league = 'セ・リーグ';
         card1.detailPageUrl = 'https://baseball.yahoo.co.jp/npb/game/2020070503/top';
         card1.venue = 'マツダスタジアム';
         card1.scheduledStartTime = '13:30';
 
         const card2 = new YahooNPBCard();
+        card2.date = '7月5日';
+        card2.kind = 'セ・リーグ';
         card2.status = '見どころ';
-        card2.homeTeam = { team: '巨人', id: 1, players: ['(予)サンチェス'], score: undefined };
-        card2.awayTeam = { team: '中日', id: 4, players: ['(予)梅津'], score: undefined };
+        card2.homeTeam = { team: '巨人', id: 1, players: ['(予)サンチェス'], score: undefined, startingMember: [] };
+        card2.awayTeam = { team: '中日', id: 4, players: ['(予)梅津'], score: undefined, startingMember: [] };
         card2.scoreBoard = undefined;
         card2.scorePlays = undefined;
-        card2.league = 'セ・リーグ';
         card2.detailPageUrl = 'https://baseball.yahoo.co.jp/npb/game/2020070501/top';
         card2.venue = '東京ドーム';
         card2.scheduledStartTime = '14:00';
 
         const card3 = new YahooNPBCard();
+        card3.date = '7月5日';
+        card3.kind = 'セ・リーグ';
         card3.status = '見どころ';
-        card3.homeTeam = { team: 'ヤクルト', id: 2, players: ['(予)高梨'], score: undefined };
-        card3.awayTeam = { team: 'ＤｅＮＡ', id: 3, players: ['(予)平良'], score: undefined };
+        card3.homeTeam = { team: 'ヤクルト', id: 2, players: ['(予)高梨'], score: undefined, startingMember: [] };
+        card3.awayTeam = { team: 'ＤｅＮＡ', id: 3, players: ['(予)平良'], score: undefined, startingMember: [] };
         card3.scoreBoard = undefined;
         card3.scorePlays = undefined;
-        card3.league = 'セ・リーグ';
         card3.detailPageUrl = 'https://baseball.yahoo.co.jp/npb/game/2020070502/top';
         card3.venue = '神宮';
         card3.scheduledStartTime = '17:00';
 
         const card4 = new YahooNPBCard();
+        card4.date = '7月5日';
+        card4.kind = 'パ・リーグ';
         card4.status = '見どころ';
-        card4.homeTeam = { team: '日本ハム', id: 8, players: ['(予)河野'], score: undefined };
-        card4.awayTeam = { team: 'ソフトバンク', id: 12, players: ['(予)二保'], score: undefined };
+        card4.homeTeam = { team: '日本ハム', id: 8, players: ['(予)河野'], score: undefined, startingMember: [] };
+        card4.awayTeam = { team: 'ソフトバンク', id: 12, players: ['(予)二保'], score: undefined, startingMember: [] };
         card4.scoreBoard = undefined;
         card4.scorePlays = undefined;
-        card4.league = 'パ・リーグ';
         card4.detailPageUrl = 'https://baseball.yahoo.co.jp/npb/game/2020070504/top';
         card4.venue = '札幌ドーム';
         card4.scheduledStartTime = '13:00';
 
         const card5 = new YahooNPBCard();
+        card5.date = '7月5日';
+        card5.kind = 'パ・リーグ';
         card5.status = '見どころ';
-        card5.homeTeam = { team: '楽天', id: 376, players: ['(予)石橋'], score: undefined };
-        card5.awayTeam = { team: 'ロッテ', id: 9, players: ['(予)美馬'], score: undefined };
+        card5.homeTeam = { team: '楽天', id: 376, players: ['(予)石橋'], score: undefined, startingMember: [] };
+        card5.awayTeam = { team: 'ロッテ', id: 9, players: ['(予)美馬'], score: undefined, startingMember: [] };
         card5.scoreBoard = undefined;
         card5.scorePlays = undefined;
-        card5.league = 'パ・リーグ';
         card5.detailPageUrl = 'https://baseball.yahoo.co.jp/npb/game/2020070505/top';
         card5.venue = '楽天生命パーク';
         card5.scheduledStartTime = undefined;
 
         const card6 = new YahooNPBCard();
+        card6.date = '7月5日';
+        card6.kind = 'パ・リーグ';
         card6.status = '見どころ';
-        card6.homeTeam = { team: '西武', id: 7, players: ['(予)與座'], score: undefined };
-        card6.awayTeam = { team: 'オリックス', id: 11, players: ['(予)山本'], score: undefined };
+        card6.homeTeam = { team: '西武', id: 7, players: ['(予)與座'], score: undefined, startingMember: [] };
+        card6.awayTeam = { team: 'オリックス', id: 11, players: ['(予)山本'], score: undefined, startingMember: [] };
         card6.scoreBoard = undefined;
         card6.scorePlays = undefined;
-        card6.league = 'パ・リーグ';
         card6.detailPageUrl = 'https://baseball.yahoo.co.jp/npb/game/2020070506/top';
         card6.venue = 'メットライフ';
         card6.scheduledStartTime = '18:00';
@@ -169,12 +175,13 @@ describe('YahooNPB', function () {
         // console.log(cards);
 
         const expectedCard = new YahooNPBCard();
+        expectedCard.date = '7月6日';
+        expectedCard.kind = 'セ・リーグ';
         expectedCard.status = '試合中止';
-        expectedCard.homeTeam = { team: '広島', id: 6, players: [], score: undefined };
-        expectedCard.awayTeam = { team: '阪神', id: 5, players: [], score: undefined };
+        expectedCard.homeTeam = { team: '広島', id: 6, players: [], score: undefined, startingMember: [] };
+        expectedCard.awayTeam = { team: '阪神', id: 5, players: [], score: undefined, startingMember: [] };
         expectedCard.scoreBoard = undefined;
         expectedCard.scorePlays = undefined;
-        expectedCard.league = 'セ・リーグ';
         expectedCard.detailPageUrl = 'https://baseball.yahoo.co.jp/npb/game/2020070601/top';
         expectedCard.venue = 'マツダスタジアム';
         expectedCard.scheduledStartTime = undefined;
@@ -370,11 +377,6 @@ describe('YahooNPBCard', function () {
       }
     });
 
-    it('Status is not available, throw error.', function () {
-      const card = new YahooNPBCard();
-      assert.throws(() => card.currentInning(), 'Invalid status value.');
-    });
-
     for (const status of YahooNPBCard.statusTexts) {
       it(`Status is ${status}, return null.`, function () {
         const card = new YahooNPBCard();
@@ -432,6 +434,32 @@ describe('YahooNPBCard', function () {
     });
   });
 
+  describe('#isTodaysCard()', function () {
+    const today = new Date();
+    it('開催日が今日の場合。', function () {
+      const card = new YahooNPBCard();
+      card.date = (today.getMonth() + 1) + '月' + today.getDate() + '日';
+      assert.isTrue(card.isTodaysCard());
+    });
+
+    it('開催日が今日ではない場合。', function () {
+      const card = new YahooNPBCard();
+      card.date = today.getMonth() + '月' + today.getDate() + '日';
+      assert.isNotTrue(card.isTodaysCard());
+    });
+
+    it('date変数がundefinedの場合。', function () {
+      const card = new YahooNPBCard();
+      assert.isNotTrue(card.isTodaysCard());
+    });
+
+    it('date変数がnullの場合。', function () {
+      const card = new YahooNPBCard();
+      card.date = null;
+      assert.isNotTrue(card.isTodaysCard());
+    });
+  });
+
   describe('#scheduledStartTimeObject()', function () {
     it('開始時刻を18時0分に設定すると、テストが実行された日の18時0分0秒0ミリ秒を表すDateオブジェクトを返す。', function () {
       const card = new YahooNPBCard();
@@ -442,6 +470,31 @@ describe('YahooNPBCard', function () {
       expectedDate.setHours(18, 0, 0, 0);
 
       assert.strictEqual(date.getTime(), expectedDate.getTime());
+    });
+  });
+});
+
+describe('YahooNPBTeam', function () {
+  describe('#isSameLeague()', function () {
+    it('同じリーグの場合はTrueを返す。', function () {
+      const team = new YahooNPBTeam();
+      team.id = 376; // 楽天
+      assert.isTrue(team.isSameLeague(7)); // 西武
+    });
+
+    it('異なるリーグの場合はFalseを返す。', function () {
+      const team = new YahooNPBTeam();
+      team.id = 376; // 楽天
+      assert.isNotTrue(team.isSameLeague(6)); // 広島
+    });
+
+    it('id値が不正な場合はエラーを出す。', function () {
+      const team = new YahooNPBTeam();
+      team.id = undefined; // id値が指定されていない。
+      assert.throws(() => team.isSameLeague(6), Error); // 広島
+
+      team.id = 376; // 楽天
+      assert.throws(() => team.isSameLeague(null), Error); // 引数が不正
     });
   });
 });

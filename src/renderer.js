@@ -1,3 +1,4 @@
+'use strict';
 /* global $ electron YahooNPB YahooNPBCard */
 const GUI = {
 
@@ -5,109 +6,6 @@ const GUI = {
     ServerErrorMsg: '情報の取得に失敗しました。',
     parseErrorMsg: '情報の解析に失敗しました。',
     unexpectedErrorMsg: '予期せぬエラーが発生しました。'
-  },
-
-  constructGameDiv: function (card) {
-    //
-    const gameDiv = document.createElement('div');
-    // gameDiv.className = 'game';
-    gameDiv.className = 'card__game game';
-    gameDiv.innerHTML += `<p class="game__venue"> ${card.venue}</p>`;
-    if (card.homeTeam.score && card.awayTeam.score) {
-      gameDiv.innerHTML += `<p class="game__score">${card.homeTeam.score} - ${card.awayTeam.score}</p>`;
-    }
-
-    if (card.scheduledStartTime) {
-      gameDiv.innerHTML += `<p class="game__scheduled-starttime">${card.scheduledStartTime}</p>`;
-    }
-
-    if (card.status) {
-      // const currentCardStatus = YahooNPB.currentCardStatus(card);
-      const currentCardStatus = card.currentStatus();
-      let text = '';
-      switch (currentCardStatus) {
-        case YahooNPBCard.statuses.before:
-          text = '試合開始予定';
-          break;
-        default:
-          text = card.status;
-      }
-      gameDiv.innerHTML += `<p class="game__status" onclick="App.execProtocol('${card.detailPageUrl}')">${text}</p>`;
-    }
-
-    return gameDiv;
-  },
-
-  constructTeamDiv: function (teamObj) {
-    const div = document.createElement('div');
-    div.className = `card__team team team${teamObj.id}`;
-
-    const teamP = document.createElement('p');
-    teamP.className = 'team__team-name';
-    teamP.textContent = teamObj.team;
-    div.appendChild(teamP);
-
-    const playersUl = document.createElement('ul');
-    playersUl.className = 'team__pitchers pitchers';
-    for (const p of teamObj.players) {
-      const playerLi = document.createElement('li');
-      playerLi.textContent = p;
-      playersUl.appendChild(playerLi);
-    }
-    div.appendChild(playersUl);
-
-    return div;
-  },
-
-  renderCardsSection: function (cards, updateMilliSec, favoriteTeamId, isDebug) {
-    //
-    GUI.cards.updateLastUpdateText(updateMilliSec, isDebug);
-
-    $('#cardsSectionErrorMsg').text('').hide();
-
-    // h2部分
-    const now = new Date(updateMilliSec);
-    const dayText = ['日', '月', '火', '水', '木', '金', '土'][now.getDay()];
-    const h2Text = `${now.getMonth() + 1}月${now.getDate()}日（${dayText}）の日程・結果`;
-    $('#cardsSection h2').text(h2Text);
-
-    const cardsUL = document.createElement('ul');
-    cardsUL.className = 'cards-section-contents__cards cards';
-
-    for (const card of cards) {
-      // console.log(card)
-      const li = document.createElement('li');
-      li.className = 'cards__card card';
-
-      li.appendChild(GUI.constructTeamDiv(card.homeTeam));
-      li.appendChild(GUI.constructGameDiv(card));
-      li.appendChild(GUI.constructTeamDiv(card.awayTeam));
-
-      if (card.league.match(/セ・リーグ/) && !YahooNPB.isPacificLeagueTeam(favoriteTeamId)) {
-        cardsUL.appendChild(li);
-      } else if (card.league.match(/パ・リーグ/) && YahooNPB.isPacificLeagueTeam(favoriteTeamId)) {
-        cardsUL.appendChild(li);
-      } else if (card.league.match(/日本シリーズ/)) {
-        cardsUL.appendChild(li);
-      }
-    }
-
-    const contents = document.getElementById('cardsSectionContents');
-    contents.innerHTML = '';
-
-    if (cardsUL.hasChildNodes()) {
-      contents.appendChild(cardsUL);
-    } else {
-      const p = document.createElement('p');
-      p.className = 'cards-section-contents__no-game';
-      if (YahooNPB.isPacificLeagueTeam(favoriteTeamId)) {
-        p.className += ' team15';
-      } else {
-        p.className += ' team16';
-      }
-      p.textContent = '今日の試合はありません';
-      contents.appendChild(p);
-    }
   },
 
   renderStandingsSection: function (npbStandings, favoriteTeamId) {
@@ -122,7 +20,7 @@ const GUI = {
     }
 
     if (!standings) {
-      console.log('順位表なし。');
+      // console.log('順位表なし。');
       return;
     }
 
@@ -131,9 +29,6 @@ const GUI = {
     tbody.innerHTML = '';
     //
     for (const team of standings) {
-    // for (const team of npbStandings.pacificLeague) {
-      // console.log(team);
-
       let tr = '';
       if (team[1] === YahooNPB.teamIdToName(favoriteTeamId)) {
         tr = '<tr class="standings__favoriteTeam">';
@@ -196,7 +91,132 @@ const GUI = {
     }
   },
 
-  cards: {
+  CardsSection: {
+
+    constructGameDiv: function (card) {
+      const gameDiv = document.createElement('div');
+      gameDiv.className = 'card__game game';
+
+      const kindText = this.generateKindText(card);
+      if (kindText) {
+        gameDiv.innerHTML += `<p class="game__kind">${kindText}</p>`;
+      }
+
+      gameDiv.innerHTML += `<p class="game__venue">${card.venue}</p>`;
+
+      if (card.homeTeam.score && card.awayTeam.score) {
+        gameDiv.innerHTML += `<p class="game__score">${card.homeTeam.score} - ${card.awayTeam.score}</p>`;
+      }
+
+      if (card.scheduledStartTime) {
+        gameDiv.innerHTML += `<p class="game__scheduled-starttime">${card.scheduledStartTime}</p>`;
+      }
+
+      const statusText = this.generateStatusText(card);
+      if (statusText) {
+        if (card.detailPageUrl) {
+          gameDiv.innerHTML += `<p class="game__status" onclick="App.execProtocol('${card.detailPageUrl}')">${statusText}</p>`;
+        } else {
+          gameDiv.innerHTML += `<p class="game__status">${statusText}</p>`;
+        }
+      }
+
+      return gameDiv;
+    },
+
+    constructTeamDiv: function (teamObj) {
+      const div = document.createElement('div');
+      div.className = `card__team team team${teamObj.id}`;
+
+      const teamP = document.createElement('p');
+      teamP.className = 'team__team-name';
+      teamP.textContent = teamObj.team;
+      div.appendChild(teamP);
+
+      const playersUl = document.createElement('ul');
+      playersUl.className = 'team__pitchers pitchers';
+      for (const p of teamObj.players) {
+        const playerLi = document.createElement('li');
+        playerLi.textContent = p;
+        playersUl.appendChild(playerLi);
+      }
+      div.appendChild(playersUl);
+
+      return div;
+    },
+
+    generateKindText: function (card) {
+      switch (card.kind) {
+        case YahooNPB.kindIds[1]: // セ・リーグ
+          return '';
+        case YahooNPB.kindIds[2]: // パ・リーグ
+          return '';
+        case YahooNPB.kindIds[35]: // セ・リーグCSファーストステージ
+          return 'CSファーストステージ';
+        case YahooNPB.kindIds[36]: // セ・リーグCSファイナルステージ
+          return 'CSファイナルステージ';
+        case YahooNPB.kindIds[37]: // パ・リーグCSファーストステージ
+          return 'CSファーストステージ';
+        case YahooNPB.kindIds[38]: // パ・リーグCSファイナルステージ
+          return 'CSファイナルステージ';
+        default:
+          return card.kind;
+      }
+    },
+
+    generateStatusText: function (card) {
+      if (!card) return '';
+      switch (card.currentStatus()) {
+        case YahooNPBCard.statuses.before:
+          return '試合開始予定';
+        default:
+          return card.status ? card.status : '';
+      }
+    },
+
+    render: function (cards, updateMilliSec, favoriteTeamId, isDebug) {
+      //
+      this.updateLastUpdateText(updateMilliSec, isDebug);
+
+      $('#cardsSectionErrorMsg').text('').hide();
+
+      // h2部分
+      const now = new Date(updateMilliSec);
+      const dayText = ['日', '月', '火', '水', '木', '金', '土'][now.getDay()];
+      const h2Text = `${now.getMonth() + 1}月${now.getDate()}日（${dayText}）の日程・結果`;
+      $('#cardsSection h2').text(h2Text);
+
+      const cardsUL = document.createElement('ul');
+      cardsUL.className = 'cards-section-contents__cards cards';
+
+      for (const card of cards) {
+        // console.log(card)
+        const li = document.createElement('li');
+        li.className = 'cards__card card';
+        li.appendChild(this.constructTeamDiv(card.homeTeam));
+        li.appendChild(this.constructGameDiv(card));
+        li.appendChild(this.constructTeamDiv(card.awayTeam));
+
+        cardsUL.appendChild(li);
+      }
+
+      const contents = document.getElementById('cardsSectionContents');
+      contents.innerHTML = '';
+      if (cardsUL.hasChildNodes()) {
+        contents.appendChild(cardsUL);
+      } else {
+        const p = document.createElement('p');
+        p.className = 'cards-section-contents__no-game';
+        if (YahooNPB.isPacificLeagueTeam(favoriteTeamId)) {
+          p.className += ' team15';
+        } else {
+          p.className += ' team16';
+        }
+        p.textContent = '今日の試合はありません';
+        contents.appendChild(p);
+      }
+    },
+
     showErrorMessage: function (e, isDebug, nextScoreUpdateTime) {
       let msg = '';
       switch (e.name) {
@@ -227,7 +247,7 @@ const GUI = {
       }
       $('#cardsLastUpdateText').text(now);
     }
-  }, // cards
+  }, // CardsSection
 
   menu: {
     init: function (startPage, favoriteTeamId) {
@@ -668,9 +688,9 @@ const GUI = {
 
       const tc = $('#todaysCard');
       tc.html('');
-      tc.append(GUI.constructTeamDiv(card.homeTeam));
-      tc.append(GUI.constructGameDiv(card));
-      tc.append(GUI.constructTeamDiv(card.awayTeam));
+      tc.append(GUI.CardsSection.constructTeamDiv(card.homeTeam));
+      tc.append(GUI.CardsSection.constructGameDiv(card));
+      tc.append(GUI.CardsSection.constructTeamDiv(card.awayTeam));
       tc.show();
     },
 
@@ -704,18 +724,13 @@ const GUI = {
     },
 
     constructScoreBoardTable: function (card) {
-      // console.log(card);
-      if (!card) {
-        // console.log('試合はありません。');
+      if (!card || !card.scoreBoard) {
         $('#scoreBoard').hide();
         return;
       }
 
       const table = document.getElementById('scoreBoard');
-      // console.log(table);
-
       const trs = table.getElementsByTagName('tr');
-      // console.log(trs);
       const theadTr = trs[0];
       const awayTr = trs[1];
       const homeTr = trs[2];
@@ -754,19 +769,10 @@ const GUI = {
       homeTr.innerHTML += `<td>${card.scoreBoard.losses[1] ? card.scoreBoard.losses[1] : ''}</td>`;
 
       $('#scoreBoard').show();
-      // console.log(table);
     },
 
     constructScorePlay: function (card) {
-      // console.log(card);
-      if (!card) {
-        $('#todaysScorePlays').hide();
-        return;
-      }
-
-      const scorePlays = card.scorePlays;
-      if (scorePlays.length === 0) {
-        // console.log('スコアプレイはありません。');
+      if (!card || !card.scorePlays || card.scorePlays.length === 0) {
         $('#todaysScorePlays').hide();
         return;
       }
@@ -774,11 +780,9 @@ const GUI = {
       const ul = $('#todaysScorePlays > ul')[0];
       ul.innerHTML = '';
 
-      for (const sp of scorePlays) {
-        // console.log(sp);
+      for (const sp of card.scorePlays) {
         let teamId = '';
         const r = sp.inningText.match(/^\d+回([表|裏])$/);
-        // console.log(r);
         if (!r || r.length <= 1) {
           console.log('Error: Could not parse inningText.');
         } else {

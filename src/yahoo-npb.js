@@ -18,6 +18,8 @@
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
+'use strict';
+
 /* global DOMParser assert */
 
 if (!assert) {
@@ -32,7 +34,7 @@ const YahooNPB = {
   teams: {
     1: '巨人',
     2: 'ヤクルト',
-    3: 'ＤｅＮＡ',
+    3: 'DeNA', // ＤｅＮＡ
     4: '中日',
     5: '阪神',
     6: '広島',
@@ -47,7 +49,7 @@ const YahooNPB = {
   centralLeagueTeams: {
     1: '巨人',
     2: 'ヤクルト',
-    3: 'ＤｅＮＡ',
+    3: 'DeNA', // ＤｅＮＡ
     4: '中日',
     5: '阪神',
     6: '広島'
@@ -60,6 +62,19 @@ const YahooNPB = {
     11: 'オリックス',
     12: 'ソフトバンク',
     376: '楽天'
+  },
+
+  kindIds: {
+    1: 'セ・リーグ',
+    2: 'パ・リーグ',
+    3: '日本シリーズ',
+    4: 'オールスターゲーム',
+    5: 'オープン戦',
+    26: 'セ・パ交流戦',
+    35: 'セ・リーグCSファーストステージ',
+    36: 'セ・リーグCSファイナルステージ',
+    37: 'パ・リーグCSファーストステージ',
+    38: 'パ・リーグCSファイナルステージ'
   },
 
   /**
@@ -89,30 +104,43 @@ const YahooNPB = {
   parseCards: function (topPageHtmlObj) {
     const cards = [];
 
-    for (const league of topPageHtmlObj.getElementById('gm_card').getElementsByTagName('section')) {
-      // League
-      const leagueNameH1 = league.getElementsByClassName('bb-socore__title');
-      if (leagueNameH1.length === 0) {
-        // 試合がないときは、リーグ名も表示されない。
+    var date = null;
+    for (const title of topPageHtmlObj.getElementsByClassName('bb-head02__title')) {
+      const result = title.textContent.match(/^\d{1,2}月\d{1,2}日/);
+      if (result) {
+        date = result[0];
+        break;
+      }
+    }
+
+    const gmCard = topPageHtmlObj.getElementById('gm_card');
+    if (gmCard === null) {
+      return cards;
+    }
+
+    for (const league of gmCard.getElementsByTagName('section')) {
+      // Kind
+      const kindH1 = league.getElementsByClassName('bb-socore__title');
+      if (kindH1.length === 0) {
+        // 試合がないときは、種別名も表示されない。
         continue;
       }
-
-      const leagueName = leagueNameH1.item(0).textContent;
-      // console.log(leagueText)
+      const kind = kindH1.item(0).textContent;
 
       // Card
       for (const card of league.getElementsByClassName('bb-score__item')) {
         const c = new YahooNPBCard();
-        c.league = leagueName;
+        c.date = date;
+        c.kind = kind;
 
         const url = card.getElementsByClassName('bb-score__content').item(0).href;
-        c.detailPageUrl = url.match(/(.*\/).*$/)[1] + 'top';
+        c.detailPageUrl = url ? url.match(/(.*\/).*$/)[1] + 'top' : null;
 
         c.venue = card.getElementsByClassName('bb-score__venue').item(0).textContent;
 
         // Team
-        c.homeTeam = {};
-        c.awayTeam = {};
+        c.homeTeam = new YahooNPBTeam();
+        c.awayTeam = new YahooNPBTeam();
         for (const team of card.getElementsByClassName('bb-score__team').item(0).children) {
           if (team.classList.contains('bb-score__homeLogo')) {
             c.homeTeam.team = team.textContent;
@@ -167,11 +195,7 @@ const YahooNPB = {
             }
 
             const link = info.getElementsByClassName('bb-score__link');
-            if (link.length !== 0) {
-              c.status = link.item(0).textContent;
-            } else {
-              c.status = undefined;
-            }
+            c.status = link.item(0) ? link.item(0).textContent : null;
 
             const homeTeamScore = info.getElementsByClassName('bb-score__score--left');
             if (homeTeamScore.length !== 0) {
@@ -330,7 +354,6 @@ const YahooNPB = {
    * @param  {HTMLDocument} topPageHtmlDoc トップページのオブジェクト
    * @return {Object} centralLeague, pacificLeague, centralLeagueUpdate,
    * pacificLeagueUpdateのキーを持つオブジェクト
-   * @throws {ParseError} パースに失敗した場合
    */
   parseStandings: function (topPageHtmlObj) {
     //
@@ -342,6 +365,9 @@ const YahooNPB = {
     };
 
     const section = topPageHtmlObj.getElementById('stand_r');
+    if (!section) {
+      return npbStandings;
+    }
     const tables = section.getElementsByTagName('table');
     for (let i = 0; i < tables.length; i++) {
       const tbody = tables[i].getElementsByTagName('tbody')[0];
@@ -351,25 +377,26 @@ const YahooNPB = {
         for (const td of tr.getElementsByTagName('td')) {
           team.push(td.textContent.replace(/\r|\r\n|\n|\t|\s/g, ''));
         }
-        // console.log(team);
         standings.push(team);
       }
-      switch (i) {
-        case 0:
-          npbStandings.centralLeague = standings;
-          break;
-        case 1:
-          npbStandings.pacificLeague = standings;
-          break;
-        default:
-          // Error.
-      }
-    }
 
-    if (!npbStandings.centralLeague || !npbStandings.pacificLeague) {
-      const error = new Error('Failed to get standings data.');
-      error.name = 'ParseError';
-      throw error;
+      if (tables.length === 1) {
+        // 順位表のtableが一つしかない場合は、多分セパ合同の順位表になっている。(オープン戦等)
+        npbStandings.centralLeague = standings;
+        npbStandings.pacificLeague = standings;
+      } else {
+        // 複数ある場合は、1つ目がセ・リーグ、2つ目がパ・リーグの順位表。
+        switch (i) {
+          case 0:
+            npbStandings.centralLeague = standings;
+            break;
+          case 1:
+            npbStandings.pacificLeague = standings;
+            break;
+          default:
+            // Error.
+        }
+      }
     }
 
     // 順位表の更新日時をパース
@@ -380,22 +407,21 @@ const YahooNPB = {
       const r = timeText.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2}) (\d{1,2}):(\d{1,2}) 更新$/);
       const date = new Date(r[1], Number(r[2]) - 1, r[3], r[4], r[5], 0);
 
-      switch (i) {
-        case 0:
-          npbStandings.centralLeagueUpdate = date;
-          break;
-        case 1:
-          npbStandings.pacificLeagueUpdate = date;
-          break;
-        default:
-          // Error.
+      if (footers.length === 1) {
+        npbStandings.centralLeagueUpdate = date;
+        npbStandings.pacificLeagueUpdate = date;
+      } else {
+        switch (i) {
+          case 0:
+            npbStandings.centralLeagueUpdate = date;
+            break;
+          case 1:
+            npbStandings.pacificLeagueUpdate = date;
+            break;
+          default:
+            // Error.
+        }
       }
-    }
-
-    if (!npbStandings.centralLeagueUpdate || !npbStandings.pacificLeagueUpdate) {
-      const error = new Error('Failed to get standings update.');
-      error.name = 'ParseError';
-      throw error;
     }
 
     return npbStandings;
@@ -506,6 +532,19 @@ class YahooNPBCard {
    */
   constructor () {
     /**
+     * 試合が行われる日付を表す文字列。
+     * 書式: M月d日
+     * @type {String}
+     */
+    this.date = undefined;
+
+    /**
+     * 試合の種別を表す文字列
+     * @type {String}
+     */
+    this.kind = undefined;
+
+    /**
      * 試合の状態を表す文字列。想定されるものは、statusTextsにて定義されている。
      * @type {String}
      */
@@ -569,6 +608,17 @@ class YahooNPBCard {
   }
 
   /**
+   * 本日行われる試合かどうか。
+   * @return {Boolean} 本日行われる試合の場合はtrue、違う場合はfalseを返す。
+   */
+  isTodaysCard () {
+    // return true;
+    const today = new Date();
+    const todayText = (today.getMonth() + 1) + '月' + today.getDate() + '日';
+    return this.date === todayText;
+  }
+
+  /**
    * 現在のイニングを表す数字を返す。
    * 後半の場合は、イニングの数字に0.5を足したものを返す。
    * 試合開始中以外は、nullを返す。
@@ -578,33 +628,33 @@ class YahooNPBCard {
    */
   currentInning () {
     //
-    assert(this.status !== undefined, 'Invalid status value.');
+    if (!this.status) return null;
 
-    if (YahooNPBCard.statusTexts.includes(this.status)) {
-      return null;
-    } else {
-      const result = this.status.match(/^(\d{1,2})回(表|裏)$/);
-      assert(result !== null, 'Invalid status value.');
+    const result = this.status.match(/^(\d{1,2})回(表|裏)$/);
+    if (!result) return null;
 
-      let inningNumber = Number(result[1]);
-      if (result[2] === '裏') {
-        inningNumber += 0.5;
-      }
-
-      return inningNumber;
+    let inningNumber = Number(result[1]);
+    if (result[2] === '裏') {
+      inningNumber += 0.5;
     }
+
+    return inningNumber;
   }
 
   /**
    * 現在の試合状況を表す値を返す。
    * 返す値は、YahooNPBCard.statusesにて定義されている。
    * @return {Number} YahooNPBCard.statusesにて定義された、現在の試合状況を表す値。
+   * 不明な場合はnullを返す。
    */
   currentStatus () {
-    assert(this.status !== undefined, 'Invalid status value.');
+    if (!this.status) return null;
 
     let status;
     switch (this.status) {
+      case '試合前':
+        status = YahooNPBCard.statuses.before;
+        break;
       case '見どころ':
         status = YahooNPBCard.statuses.before;
         break;
@@ -627,7 +677,7 @@ class YahooNPBCard {
         if (this.status.match(/^(\d{1,2})回(表|裏)$/)) {
           status = YahooNPBCard.statuses.going;
         } else {
-          assert(false, 'Invalid status value.');
+          return null;
         }
     }
     // console.log(status);
@@ -659,7 +709,64 @@ class YahooNPBCard {
 
 // Static values
 YahooNPBCard.statuses = { before: 0, going: 1, over: 2, suspend: 3, cancel: 4 };
-YahooNPBCard.statusTexts = ['見どころ', 'スタメン', '試合終了', '中断中', '試合中止', 'ノーゲーム'];
+YahooNPBCard.statusTexts = ['試合前', '見どころ', 'スタメン', '試合終了', '中断中', '試合中止', 'ノーゲーム'];
+
+class YahooNPBTeam {
+  constructor () {
+    /**
+     * チームのID値。
+     * 各チームの値は、YahooNPB.teamsで定義されている。
+     * @type {Number}
+     */
+    this.id = undefined;
+
+    /**
+     * 先発や勝利投手などのプレーヤーが保存される。
+     * @type {Array}
+     */
+    this.players = [];
+
+    /**
+     * 得点を表す文字列。
+     * @type {String}
+     */
+    this.score = undefined;
+
+    /**
+     * スターティングメンバーを表すオブジェクトが含まれた配列。
+     * @type {Array}
+     */
+    this.startingMember = [];
+
+    /**
+     * チーム名の文字列。
+     * @type {String}
+     */
+    this.team = undefined;
+  }
+
+  /**
+   * 引数で与えられたチームが、同じリーグに所属するチームか比較する。
+   * @param  {Number}  teamId 比較するチームのid値
+   * @return {Boolean}        同じリーグのチームの場合はtrue、異なる場合はfalseを返す。
+   * @throws {TypeError} 引数の型が不正な場合。
+   */
+  isSameLeague (teamId) {
+    assert(this.id, 'Invalid id value.');
+
+    if (!Number.isInteger(teamId)) {
+      throw new TypeError('Invalid argument type, Number is expected.');
+    }
+
+    if (YahooNPB.isPacificLeagueTeam(teamId) && YahooNPB.isPacificLeagueTeam(this.id)) {
+      return true;
+    } else if (!YahooNPB.isPacificLeagueTeam(teamId) && !YahooNPB.isPacificLeagueTeam(this.id)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+} // YahooNPBTeam
 
 /** スコアプレイに関するクラス */
 class YahooNPBScorePlay {
@@ -699,6 +806,7 @@ if (typeof module !== 'undefined') {
   module.exports = {
     YahooNPB: YahooNPB,
     YahooNPBCard: YahooNPBCard,
-    YahooNPBScorePlay: YahooNPBScorePlay
+    YahooNPBScorePlay: YahooNPBScorePlay,
+    YahooNPBTeam: YahooNPBTeam
   };
 }

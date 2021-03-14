@@ -68,6 +68,9 @@ body {
   text-align: center;
 }
 
+.today-section__today-section-contents {
+}
+
 .today-section__card {
   width: 300px;
   margin: 15px 25px;
@@ -103,6 +106,10 @@ body {
 
 .today-section__error-message {
   margin: 0px;
+}
+
+.today-section-contents {
+  min-height: 300px;
 }
 
 .score-board {
@@ -196,7 +203,7 @@ body {
 }
 
 .cards-section-contents {
-  height: 300px;
+  min-height: 300px;
 }
 
 .cards-section-contents__cards {
@@ -217,7 +224,6 @@ body {
 
 .cards {
   width: 300px;
-  height: 300px;
   padding: 0px;
   list-style: none;
 }
@@ -277,6 +283,12 @@ body {
   text-align: center;
 }
 
+.game__kind {
+  margin: 0px;
+  padding: 0px;
+  font-size: 0.8em;
+}
+
 .game__venue {
   margin: 0px;
   padding: 0px;
@@ -319,6 +331,9 @@ body {
   text-align: center;
 }
 
+.standings-section__contents {
+}
+
 .standings-section__standings {
   margin: 15px 15px;
 }
@@ -329,6 +344,10 @@ body {
 
 .standings-section__error-message {
   margin: 0px;
+}
+
+.standings-section-contents {
+  min-height: 300px;
 }
 
 .standings {

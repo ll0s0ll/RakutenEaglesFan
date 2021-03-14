@@ -33,7 +33,6 @@ const RakutenFmTohoku = {
     // console.log('Now: ' + now)
 
     const progs = RakutenFmTohoku.getProgramsByDay(timeTable, now);
-    // console.log(progs)
     let prog = this.getProgramByTime(progs, now);
     if (!prog) {
       // 見つからない場合、昨日から日をまたいで放送している番組の可能性を探る。
@@ -62,9 +61,9 @@ const RakutenFmTohoku = {
     // console.log(date)
 
     // 指定日が、タイムテーブルの掲載範囲内か確認。
-    if (date.getTime() < timeTable.termStartMSec || date.getTime() >= timeTable.termEndMSec) {
+    /* if (date.getTime() < timeTable.termStartMSec || date.getTime() >= timeTable.termEndMSec) {
       return [];
-    }
+    } */
 
     let progs;
     // 指定日の曜日に合致するオブジェクトを取得
@@ -198,8 +197,8 @@ const RakutenFmTohoku = {
     // console.log(objectText)
 
     const timeTableObj = JSON.parse(r6);
-    // console.log(timeTableObject)
-
+    // console.log(timeTableObj);
+    /*
     // 期間を使いやすい形式(unix time (milliseconds))でも保存する。
     // term: "7月13日～7月19日"
     const term = timeTableObj.term.match(/(\d{1,2})月(\d{1,2})日～(\d{1,2})月(\d{1,2})日/);
@@ -213,7 +212,7 @@ const RakutenFmTohoku = {
     const termEnd = new Date(year, (Number(term[3]) - 1), term[4], 23, 59, 59);
     // console.log(termEnd);
     timeTableObj.termEndMSec = termEnd.getTime();
-
+    */
     return timeTableObj;
   }
 }; // RakutenFmTohoku
