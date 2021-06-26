@@ -152,6 +152,11 @@
             <input id="updateFreqSlider" type="range">
             （<span id="updateFreqText"></span>分）
           </dd>
+          <dd class="preference-section__dd">
+            <label for="autoUpdatesCheckingCheckbox">アップデートを自動的に確認 (<a href="javascript:App.checkUpdatesNow()">今すぐ確認</a>)：</label>
+            <input id="autoUpdatesCheckingCheckbox" type="checkbox" value="autoUpdatesChecking">
+            <p id="updateMessage" class="preference-section__update-message"></p>
+          </dd>
         </dl>
         <dl class="preference-section__dl">
           <dt>通知</dt>

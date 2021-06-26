@@ -30,23 +30,21 @@ function createWindow () {
     show: false, // ready-to-show eventを発火させるために必要
     webPreferences: {
       devTools: true,
+      enableRemoteModule: true,
       nodeIntegration: false,
-      preload: `${__dirname}/preload.js`
+      preload: `${__dirname}/preload.js`,
+      additionalArguments: [`--argc=${process.argv.slice(2).length}`].concat(process.argv.slice(2))
+
     },
     frame: false,
     resizable: false,
     movable: false
   });
 
-  if (process.argv.includes('test')) {
-    bw.loadFile('test/test.html');
-  } else {
-    bw.loadFile('src/index.html');
-    // bw.webContents.openDevTools();
+  bw.loadFile('src/index.html');
+  if (process.argv.includes('--debug')) {
+    bw.webContents.openDevTools();
   }
-  // bw.loadFile('src/index.html');
-  // bw.loadFile('test/test.html');
-  // bw.webContents.openDevTools();
 
   // フォーカスがはずれたら、ウィンドウを隠す。
   bw.on('blur', () => {

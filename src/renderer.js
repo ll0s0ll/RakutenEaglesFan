@@ -1,6 +1,14 @@
 'use strict';
-/* global $ electron YahooNPB YahooNPBCard */
+/* global $ DEBUG DISABLE_RADIO electron RakutenFmTohoku YahooNPB YahooNPBCard */
 const GUI = {
+
+  init: function (preferences) {
+    this.updateNetworkStatus();
+
+    GUI.menu.init(preferences.startPage, preferences.favoriteTeamId);
+    GUI.preferenceSection.init(preferences, preferences.save);
+    GUI.rakutenFmTohokuSection.init();
+  },
 
   errorMsgs: {
     ServerErrorMsg: '情報の取得に失敗しました。',
@@ -68,14 +76,14 @@ const GUI = {
     }
   },
 
-  renderTodaySection: function (card, updateMilliSec, favoriteTeamId, isDebug, nextDetailPageUpdateTime) {
+  renderTodaySection: function (card, updateMsec, favoriteTeamId) {
     GUI.today.resetErrorMessages();
     GUI.today.constructH2();
     GUI.today.constructCard(card);
     GUI.today.constructScoreBoardTable(card);
     GUI.today.constructScorePlay(card);
     GUI.today.constructNoGameMessage(card, favoriteTeamId);
-    GUI.today.constructFooter(updateMilliSec, isDebug, nextDetailPageUpdateTime);
+    GUI.today.constructFooter(updateMsec);
   },
 
   switchTab: function (tab) {
@@ -174,14 +182,14 @@ const GUI = {
       }
     },
 
-    render: function (cards, updateMilliSec, favoriteTeamId, isDebug) {
+    render: function (cards, updateMsec, favoriteTeamId) {
       //
-      this.updateLastUpdateText(updateMilliSec, isDebug);
+      this.updateLastUpdateText(updateMsec);
 
       $('#cardsSectionErrorMsg').text('').hide();
 
       // h2部分
-      const now = new Date(updateMilliSec);
+      const now = new Date(updateMsec);
       const dayText = ['日', '月', '火', '水', '木', '金', '土'][now.getDay()];
       const h2Text = `${now.getMonth() + 1}月${now.getDate()}日（${dayText}）の日程・結果`;
       $('#cardsSection h2').text(h2Text);
@@ -217,7 +225,7 @@ const GUI = {
       }
     },
 
-    showErrorMessage: function (e, isDebug, nextScoreUpdateTime) {
+    showErrorMessage: function (e, nextScoreUpdateTime) {
       let msg = '';
       switch (e.name) {
         case 'ServerError':
@@ -230,7 +238,7 @@ const GUI = {
           msg = GUI.errorMsgs.unexpectedErrorMsg;
       }
       const d = new Date(nextScoreUpdateTime);
-      if (isDebug) {
+      if (DEBUG) {
         msg += ` ${d.getHours()}時${d.getMinutes()}分${d.getSeconds()}秒に再試行します。`;
       } else {
         msg += ` ${d.getHours()}時${d.getMinutes()}分に再試行します。`;
@@ -238,10 +246,10 @@ const GUI = {
       $('#cardsSectionErrorMsg').text(msg).show();
     },
 
-    updateLastUpdateText: function (update, isDebug) {
+    updateLastUpdateText: function (update) {
       // 更新時刻を更新
       let now = new Date(update).toLocaleTimeString();
-      if (!isDebug) {
+      if (!DEBUG) {
         // 21:52:04 -> 21:52
         now = now.replace(/:\d{1,2}$/, '');
       }
@@ -250,6 +258,8 @@ const GUI = {
   }, // CardsSection
 
   menu: {
+    favoriteTeamId: null,
+
     init: function (startPage, favoriteTeamId) {
       //
       $('#tabs').tabs({
@@ -283,6 +293,9 @@ const GUI = {
       for (const element of $('#preferenceSection input, select')) {
         // console.log(`type:${input.type} id:${input.id} name:${input.name} value:${input.value}`);
         switch (element.id) {
+          case 'autoUpdatesCheckingCheckbox':
+            element.checked = preferences.autoUpdatesChecking;
+            break;
           case 'favoriteTeamSelect':
             $('#favoriteTeamSelect').val(String(preferences.favoriteTeamId));
             break;
@@ -317,11 +330,100 @@ const GUI = {
       $('#cancelButton').prop('disabled', true);
     },
 
+    clearCheckingUpdateStatus: function () {
+      $('#updateMessage').html('');
+    },
+
+    init: function (preferences, onPreferenceChangedHandler) {
+      // console.log('preference::init()');
+
+      this.onPreferenceChanged = onPreferenceChangedHandler;
+
+      $('#preferenceSectionErrorMsg').text('').hide();
+
+      for (const element of $('#preferenceSection input, select')) {
+        // console.log(`type:${input.type} id:${input.id} name:${input.name} value:${input.value}`);
+
+        // すべての要素にonChangeハンドラを設定
+        // element.onchange = this.onChangeHandler;
+        element.onchange = function (event) {
+          GUI.preferenceSection.onChangeHandler(event, preferences);
+        };
+
+        switch (element.id) {
+          case 'autoUpdatesCheckingCheckbox':
+            element.checked = preferences.autoUpdatesChecking;
+            break;
+          case 'favoriteTeamSelect':
+            $('#favoriteTeamSelect').val(String(preferences.favoriteTeamId));
+            break;
+          case 'gamesetNotifCheckbox':
+            element.checked = preferences.gamesetNotification;
+            break;
+          case 'inningNotifCheckbox':
+            element.checked = preferences.inningChangeNotification;
+            break;
+          case 'notificationSoundCheckbox':
+            element.checked = preferences.silentNotification ? false : true;
+            break;
+          case 'playballNotifCheckbox':
+            element.checked = preferences.playballNotification;
+            break;
+          case 'scorePlayNotifCheckbox':
+            element.checked = preferences.scorePlayNotification;
+            break;
+          case 'startPageSelect':
+            element.value = String(preferences.startPage);
+
+            for (const option of element.children) {
+              if (option.value === '1') {
+                if (YahooNPB.isPacificLeagueTeam(preferences.favoriteTeamId)) {
+                  option.textContent = 'パ・リーグ';
+                } else {
+                  option.textContent = 'セ・リーグ';
+                }
+              }
+            }
+            break;
+          case 'updateFreqSlider':
+            element.oninput = function (event) {
+              $('#updateFreqText').text(event.target.value);
+            };
+            element.step = 5;
+            element.min = DEBUG ? 0 : preferences.minUpdateFreqMinitus;
+            element.max = preferences.maxUpdateFreqMinitus;
+            element.value = String(preferences.updateFreqMinitus);
+
+            $('#updateFreqText').text(String(preferences.updateFreqMinitus));
+            break;
+          default:
+            // Do nothing.
+        }
+      }
+
+      const applyButton = $('#applyButton');
+      applyButton.on('click', function () {
+        GUI.preferenceSection.save();
+      });
+      applyButton.prop('disabled', true);
+
+      const cancelButton = $('#cancelButton');
+      cancelButton.on('click', function () {
+        GUI.preferenceSection.cancel(preferences);
+      });
+      cancelButton.prop('disabled', true);
+    },
+
     onChangeHandler: function (event, preferences) {
       // console.log(`onchange:${event.target}`);
       let isChanged = false;
       for (const element of $('#preferenceSection input, select')) {
         switch (element.id) {
+          case 'autoUpdatesCheckingCheckbox':
+            if (element.checked !== preferences.autoUpdatesChecking) {
+              isChanged = true;
+            }
+            break;
           case 'favoriteTeamSelect':
             if ($('#favoriteTeamSelect').val() !== String(preferences.favoriteTeamId)) {
               isChanged = true;
@@ -377,86 +479,28 @@ const GUI = {
       }
     },
 
-    init: function (preferences, isDebug, onPreferenceChangedHandler) {
-      // console.log('preference::init()');
-
-      this.onPreferenceChanged = onPreferenceChangedHandler;
-
-      $('#preferenceSectionErrorMsg').text('').hide();
-
-      for (const element of $('#preferenceSection input, select')) {
-        // console.log(`type:${input.type} id:${input.id} name:${input.name} value:${input.value}`);
-
-        // すべての要素にonChangeハンドラを設定
-        // element.onchange = this.onChangeHandler;
-        element.onchange = function (event) {
-          GUI.preferenceSection.onChangeHandler(event, preferences);
-        };
-
-        switch (element.id) {
-          case 'favoriteTeamSelect':
-            $('#favoriteTeamSelect').val(String(preferences.favoriteTeamId));
-            break;
-          case 'gamesetNotifCheckbox':
-            element.checked = preferences.gamesetNotification;
-            break;
-          case 'inningNotifCheckbox':
-            element.checked = preferences.inningChangeNotification;
-            break;
-          case 'notificationSoundCheckbox':
-            element.checked = preferences.silentNotification ? false : true;
-            break;
-          case 'playballNotifCheckbox':
-            element.checked = preferences.playballNotification;
-            break;
-          case 'scorePlayNotifCheckbox':
-            element.checked = preferences.scorePlayNotification;
-            break;
-          case 'startPageSelect':
-            element.value = String(preferences.startPage);
-
-            for (const option of element.children) {
-              if (option.value === '1') {
-                if (YahooNPB.isPacificLeagueTeam(preferences.favoriteTeamId)) {
-                  option.textContent = 'パ・リーグ';
-                } else {
-                  option.textContent = 'セ・リーグ';
-                }
-              }
-            }
-            break;
-          case 'updateFreqSlider':
-            element.oninput = function (event) {
-              $('#updateFreqText').text(event.target.value);
-            };
-            element.step = 5;
-            element.min = isDebug ? 0 : preferences.minUpdateFreqMinitus;
-            element.max = preferences.maxUpdateFreqMinitus;
-            element.value = String(preferences.updateFreqMinitus);
-
-            $('#updateFreqText').text(String(preferences.updateFreqMinitus));
-            break;
-          default:
-            // Do nothing.
-        }
-      }
-
-      const applyButton = $('#applyButton');
-      applyButton.on('click', function () {
-        GUI.preferenceSection.save();
-      });
-      applyButton.prop('disabled', true);
-
-      const cancelButton = $('#cancelButton');
-      cancelButton.on('click', function () {
-        GUI.preferenceSection.cancel(preferences);
-      });
-      cancelButton.prop('disabled', true);
-    },
-
     onPreferenceChanged: function (preferences) {
       // Override me.
       console.log('onPreferenceChanged()');
+    },
+
+    refreshCheckingUpdatesStatus: function (version, update, error) {
+      const timeStr = update.toLocaleTimeString().replace(/:\d{1,2}$/, '');
+      let dateStr = `${update.getMonth() + 1}月${update.getDate()}日`;
+      dateStr += DEBUG ? ` ${timeStr}` : '';
+
+      let html = '';
+      if (version) {
+        html += `<strong><a href="javascript:App.openGitHubLatestReleasePage()">新しいバージョン（${version}）</a>があります。</strong>`;
+      } else if (error && error.message === 'RateLimitExceeded') {
+        html += 'エラー: 制限回数を超えました。';
+      } else if (error) {
+        html += `予期せぬエラーが発生しました。（${dateStr} 現在）`;
+      } else {
+        html += `最新のバージョンです。（${dateStr} 現在）`;
+      }
+
+      $('#updateMessage').html(html);
     },
 
     save: function () {
@@ -465,6 +509,9 @@ const GUI = {
       for (const element of $('#preferenceSection input, select')) {
         // console.log(`type:${input.type} id:${input.id} name:${input.name} value:${input.value}`);
         switch (element.id) {
+          case 'autoUpdatesCheckingCheckbox':
+            newPrefs.autoUpdatesChecking = element.checked;
+            break;
           case 'favoriteTeamSelect': {
             newPrefs.favoriteTeamId = Number($('#favoriteTeamSelect').val());
             /* const isChanged = App.preferences.favoriteTeamId !== Number($('#favoriteTeamSelect').val());
@@ -516,6 +563,10 @@ const GUI = {
         }
       }
 
+      if (newPrefs.autoUpdatesChecking === false) {
+        this.clearCheckingUpdateStatus();
+      }
+
       this.onPreferenceChanged(newPrefs);
 
       $('#applyButton').prop('disabled', true);
@@ -528,41 +579,15 @@ const GUI = {
   }, // preferenceSection
 
   rakutenFmTohokuSection: {
-
     audioPlayer: {
-      addEventListeners: function (playingEventHander, waitingEventHander) {
-        const audioPlayer = document.getElementById('audioPlayer');
+      isStalled: false,
+      timeoutId: null,
 
-        if (playingEventHander) {
-          audioPlayer.addEventListener('playing', playingEventHander);
-        }
-
-        if (waitingEventHander) {
-          audioPlayer.addEventListener('waiting', waitingEventHander);
-        }
-
-        /* const eventList = [
-            "abort","canplay","canplaythrough","durationchange","emptied",
-            "ended","error","loadeddata","loadedmetadata","loadstart",
-            "pause","play","playing","progress","ratechange","seeking",
-            "seeked","stalled","suspend","timeupdate","volumechange","waiting"
-        ];
-
-        for (const event of eventList) {
-          // console.log(event);
-          audioPlayer.addEventListener(event, (e) => {
-            console.log(e.type);
-          });
-        }
-        */
-      },
-
-      init: function (hlsSrcUrl, playingEventHander, waitingEventHander) {
+      init: function () {
         const Hls = electron.node.hls;
         if (Hls.isSupported()) {
           GUI.hls = new Hls();
-          // const hls = new Hls();
-          GUI.hls.loadSource(hlsSrcUrl);
+          GUI.hls.loadSource(RakutenFmTohoku.hlsSrcUrl);
           GUI.hls.attachMedia(document.getElementById('audioPlayer'));
           GUI.hls.on(Hls.Events.MANIFEST_PARSED, function () {
             // audio.play();
@@ -592,7 +617,33 @@ const GUI = {
           });
         }
 
-        this.addEventListeners(playingEventHander, waitingEventHander);
+        this.addEventListeners();
+      },
+
+      addEventListeners: function () {
+        const audioPlayerElement = document.getElementById('audioPlayer');
+        audioPlayerElement.addEventListener('playing', function () {
+          this.playingEventHander();
+        }.bind(this));
+
+        audioPlayerElement.addEventListener('waiting', function () {
+          this.waitingEventHander();
+        }.bind(this));
+
+        /* const eventList = [
+            "abort","canplay","canplaythrough","durationchange","emptied",
+            "ended","error","loadeddata","loadedmetadata","loadstart",
+            "pause","play","playing","progress","ratechange","seeking",
+            "seeked","stalled","suspend","timeupdate","volumechange","waiting"
+        ];
+
+        for (const event of eventList) {
+          // console.log(event);
+          audioPlayer.addEventListener(event, (e) => {
+            console.log(e.type);
+          });
+        }
+        */
       },
 
       play: function () {
@@ -600,20 +651,45 @@ const GUI = {
         audioPlayer.play();
       },
 
+      /**
+       * isStalledの値をfalseに設定する。
+       * @param  {Event} e イベントハンドラのイベントオブジェクト
+       */
+      playingEventHander: function (e) {
+        this.isStalled = false;
+      },
+
       reload: function (hlsSrcUrl) {
         GUI.hls.destroy();
-        GUI.rakutenFmTohokuSection.audioPlayer.init(hlsSrcUrl, null, null);
+        this.init(hlsSrcUrl, null, null);
       },
 
       pause: function () {
         const audioPlayer = document.getElementById('audioPlayer');
         audioPlayer.pause();
+      },
+
+      /**
+       * 関数実行後3秒以内にisStalledがfalseにならなければ、
+       * audioPlayerをリロードして、再生を再開する。
+       *
+       * @param  {Event} e イベントハンドラのイベントオブジェクト
+       */
+      waitingEventHander: function (e) {
+        this.isStalled = true;
+        clearTimeout(this.timeoutId);
+        this.timeoutId = window.setTimeout(function () {
+          if (this.isStalled) {
+            this.reload(RakutenFmTohoku.hlsSrcUrl);
+            this.play();
+          }
+        }.bind(this), 3 * 1000);
       }
     }, // audioPlayer
 
-    init: function (hlsSrcUrl, disableRadioPlayer, playingEventHander, waitingEventHander) {
-      if (!disableRadioPlayer) {
-        this.audioPlayer.init(hlsSrcUrl, playingEventHander, waitingEventHander);
+    init: function () {
+      if (!DISABLE_RADIO) {
+        this.audioPlayer.init();
       }
     },
 
@@ -633,7 +709,7 @@ const GUI = {
       $('#nowOnAirProgram').html(html);
     },
 
-    showErrorMessage: function (e, isDebug, nextNoaUpdateTime) {
+    showErrorMessage: function (e, nextNoaUpdateTime) {
       let msg = '';
       switch (e.name) {
         case 'ServerError':
@@ -646,7 +722,7 @@ const GUI = {
           msg = GUI.errorMsgs.unexpectedErrorMsg;
       }
       const d = new Date(nextNoaUpdateTime);
-      if (isDebug) {
+      if (DEBUG) {
         msg += ` ${d.getHours()}時${d.getMinutes()}分${d.getSeconds()}秒に再試行します。`;
       } else {
         msg += ` ${d.getHours()}時${d.getMinutes()}分に再試行します。`;
@@ -656,7 +732,7 @@ const GUI = {
   }, // rakutenFmTohokuSection
 
   standingsSection: {
-    showErrorMessage: function (e, isDebug, nextScoreUpdateTime) {
+    showErrorMessage: function (e, nextScoreUpdateTime) {
       let msg = '';
       switch (e.name) {
         case 'ServerError':
@@ -669,7 +745,7 @@ const GUI = {
           msg = GUI.errorMsgs.unexpectedErrorMsg;
       }
       const d = new Date(nextScoreUpdateTime);
-      if (isDebug) {
+      if (DEBUG) {
         msg += ` ${d.getHours()}時${d.getMinutes()}分${d.getSeconds()}秒に再試行します。`;
       } else {
         msg += ` ${d.getHours()}時${d.getMinutes()}分に再試行します。`;
@@ -694,16 +770,14 @@ const GUI = {
       tc.show();
     },
 
-    constructFooter: function (updateMilliSec, isDebug, nextDetailPageUpdateTime) {
+    constructFooter: function (updateMsec) {
       // 更新時刻を更新
-      let now = new Date(updateMilliSec).toLocaleTimeString();
-      if (isDebug) {
-        $('#todayLastUpdateText').html(`${now}<br>次回更新 ${new Date(nextDetailPageUpdateTime).toLocaleTimeString()}`);
-      } else {
+      let update = new Date(updateMsec).toLocaleTimeString();
+      if (!DEBUG) {
         // 21:52:04 -> 21:52
-        now = now.replace(/:\d{1,2}$/, '');
-        $('#todayLastUpdateText').html(`${now}`);
+        update = update.replace(/:\d{1,2}$/, '');
       }
+      $('#todayLastUpdateText').html(`${update}`);
     },
 
     constructH2: function () {
@@ -809,7 +883,7 @@ const GUI = {
       $('#todaySectionTopErrorMsg').text('').hide();
     },
 
-    showDetailPageError: function (e, isDebug, nextDetailPageUpdateTime) {
+    showDetailPageError: function (e, nextDetailPageUpdateTime) {
       let msg = '';
       switch (e.name) {
         case 'ServerError':
@@ -822,7 +896,7 @@ const GUI = {
           msg = GUI.errorMsgs.unexpectedErrorMsg;
       }
       const d = new Date(nextDetailPageUpdateTime);
-      if (isDebug) {
+      if (DEBUG) {
         msg += ` ${d.getHours()}時${d.getMinutes()}分${d.getSeconds()}秒に再試行します。`;
       } else {
         msg += ` ${d.getHours()}時${d.getMinutes()}分に再試行します。`;
@@ -833,7 +907,7 @@ const GUI = {
       }
     },
 
-    showTopPageError: function (e, isDebug, nextScoreUpdateTime) {
+    showTopPageError: function (e, nextScoreUpdateTime) {
       let msg = '';
       switch (e.name) {
         case 'ServerError':
@@ -846,7 +920,7 @@ const GUI = {
           msg = GUI.errorMsgs.unexpectedErrorMsg;
       }
       const d = new Date(nextScoreUpdateTime);
-      if (isDebug) {
+      if (DEBUG) {
         msg += ` ${d.getHours()}時${d.getMinutes()}分${d.getSeconds()}秒に再試行します。`;
       } else {
         msg += ` ${d.getHours()}時${d.getMinutes()}分に再試行します。`;

@@ -1,30 +1,18 @@
 'use strict';
-/* global electron GUI Notification RakutenFmTohoku YahooNPB YahooNPBCard localStorage */
+/* global assert CheckingUpdatesWorker DISABLE_RADIO electron GUI Notification RakutenFmTohokuCrawler YahooNPBCard YahooNPBCrawler localStorage */
 
 // オブジェクト名を取得
 // console.log(Object.prototype.toString.apply(scheduledStartTime));
 
 const App = {
-  isDebug: false,
-  isLocalDebug: false,
-  ignoreUpdateFreqPref: false,
-  disableRadioPlayer: false,
-  disabledNowOnAir: false,
-
-  isOnline: undefined,
-
-  cards: undefined,
   notifiedScorePlays: undefined,
-
   currentInning: undefined,
   currentStatus: undefined,
 
-  nextNoaUpdateTime: undefined,
-  nextDetailPageUpdateTime: undefined,
-  nextScoreUpdateTime: undefined,
-
   preferences: {
     // デフォルト値
+    autoUpdatesCheckingDefaultVal: true,
+    autoUpdatesCheckingIntervalDaysDefaultVal: 1,
     favoriteTeamIdDefaultVal: 376, // 376=楽天
     gamesetNotificationDefaultVal: true,
     inningChangeNotificationDefaultVal: true,
@@ -36,6 +24,22 @@ const App = {
 
     minUpdateFreqMinitus: 5,
     maxUpdateFreqMinitus: 60,
+
+    get autoUpdatesChecking () {
+      const savedVal = localStorage.getItem('pref_autoUpdatesChecking');
+      if (savedVal) {
+        return savedVal === '1' ? true : false;
+      } else {
+        const defaultVal = this.autoUpdatesCheckingDefaultVal ? '1' : '0';
+        localStorage.setItem('pref_autoUpdatesChecking', defaultVal);
+        return this.gamesetNotificationDefaultVal;
+      }
+    },
+
+    set autoUpdatesChecking (val) {
+      assert(typeof val === 'boolean', `Invalid argument, ${typeof val} passed.`);
+      localStorage.setItem('pref_autoUpdatesChecking', val ? '1' : '0');
+    },
 
     get favoriteTeamId () {
       const savedVal = localStorage.getItem('pref_favoriteTeamId');
@@ -191,11 +195,24 @@ const App = {
       for (const pref in prefs) {
         // console.log(pref);
         switch (pref) {
+          case 'autoUpdatesChecking': {
+            const isChanged = prefs.autoUpdatesChecking !== App.preferences.autoUpdatesChecking;
+            App.preferences.autoUpdatesChecking = prefs.autoUpdatesChecking;
+            if (isChanged) {
+              if (App.preferences.autoUpdatesChecking) {
+                App.checkingUpdatesWorker.run();
+              } else {
+                App.checkingUpdatesWorker.stop();
+              }
+            }
+            break;
+          }
           case 'favoriteTeamId': {
             const isChanged = prefs.favoriteTeamId !== App.preferences.favoriteTeamId;
             App.preferences.favoriteTeamId = prefs.favoriteTeamId;
             if (isChanged) {
-              App.reload();
+              App.reset();
+              App.yahooNpbCrawler.update(true);
             }
             break;
           }
@@ -221,7 +238,7 @@ const App = {
             const isChanged = prefs.updateFreqMinitus !== App.preferences.updateFreqMinitus;
             App.preferences.updateFreqMinitus = prefs.updateFreqMinitus;
             if (isChanged) {
-              App.reScheduleNextScoreUpdateTime();
+              App.yahooNpbCrawler.update(true);
             }
             break;
           }
@@ -232,265 +249,42 @@ const App = {
     }
   }, // preferences
 
-  audioPlayer: {
-    isStalled: false,
-    timeoutId: null,
+  Notification: {
+    notifyUpdateAvailable: function (version) {
+      if (!version) return;
 
-    /**
-     * isStalledの値をfalseに設定する。
-     * @param  {Event} e イベントハンドラのイベントオブジェクト
-     */
-    playingEventHander: function (e) {
-      // console.log(e.type);
-      App.audioPlayer.isStalled = false;
-    },
+      const title = 'アップデートがあります';
+      const options = {
+        body: `新しいバージョン（${version}）が公開されました。\nクリックして確認してください。`,
+        silent: App.preferences.silentNotification,
+        tag: 'updateAvailable'
+      };
 
-    /**
-     * 関数実行後5秒以内にisStalledがfalseにならなければ、
-     * audioPlayerをリロードして、再生を再開する。
-     *
-     * @param  {Event} e イベントハンドラのイベントオブジェクト
-     */
-    waitingEventHander: function (e) {
-      // console.log(e.type);
-      App.audioPlayer.isStalled = true;
-      clearTimeout(App.audioPlayer.timeoutId);
-      App.audioPlayer.timeoutId = window.setTimeout(function () {
-        // console.log(`isAudioPlayerStalled: ${App.audioPlayer.isStalled}`);
-        if (App.audioPlayer.isStalled) {
-          // console.log('reload');
-          GUI.rakutenFmTohokuSection.audioPlayer.reload(RakutenFmTohoku.hlsSrcUrl);
-          GUI.rakutenFmTohokuSection.audioPlayer.play();
-        }
-      }, 5 * 1000);
+      const notification = new Notification(title, options);
+      notification.onclick = function () {
+        App.openGitHubLatestReleasePage();
+      };
     }
   },
-  /*
-  calcDetailPageUpdateTime: function (card, nowMilliSec) {
-    //
-    let updateTime;
-    const currentCardStatus = card.currentStatus();
-    const scheduledStartTimeObj = card.scheduledStartTimeObject();
-    if (scheduledStartTimeObj) {
-      // 試合開始の5分前から更新
-      updateTime = scheduledStartTimeObj.getTime() - 5 * 60 * 1000;
-    } else if (currentCardStatus === YahooNPBCard.statuses.cancel ||
-                currentCardStatus === YahooNPBCard.statuses.over) {
-      // 試合終了後や中止の場合は、遠い未来を指定。
-      updateTime = nowMilliSec + (24 * 60 * 60 * 1000);
-    } else {
-      // 試合中
-      const intervalSec = App.ignoreUpdateFreqPref ? 10 : App.preferences.updateFreqMinitus * 60;
-      updateTime = nowMilliSec + (intervalSec * 1000);
-    }
 
-    return updateTime;
+  checkUpdatesNow: function () {
+    this.checkingUpdatesWorker.checkUpdatesNow();
   },
-  */
+  
   execProtocol: function (url) {
     electron.shell.openExternal(url);
-  },
-
-  fetchDetailPageAsync: function (card) {
-    //
-    return new Promise((resolve, reject) => {
-      if (!card || !card.detailPageUrl) {
-        resolve({ scoreBoard: null, scorePlays: [], startingMembers: null });
-        return;
-      }
-
-      if (App.isLocalDebug) {
-        const localFilePath = 'test/dummy_detail_gaming.html';
-        electron.node.fs.readFile(localFilePath, 'utf-8', (err, data) => {
-          if (err) {
-            console.log(err);
-            const error = new Error('Failed to fetch detail page data.');
-            error.name = 'ServerError';
-            reject(error);
-            return;
-          }
-          try {
-            resolve(YahooNPB.parseDetailPage(data));
-          } catch (e) {
-            reject(e);
-          }
-        });
-        return;
-      }
-
-      let buf;
-      const request = electron.node.https.request(card.detailPageUrl, {}, (res) => {
-        // res.setEncoding('utf8');
-        res.on('data', (chunk) => {
-          // console.log(`BODY: ${chunk}`);
-          if (buf === undefined) {
-            buf = chunk;
-          } else {
-            buf = electron.node.Buffer.concat([buf, chunk]);
-          }
-        });
-        res.on('end', () => {
-          try {
-            // console.log(buf)
-            resolve(YahooNPB.parseDetailPage(buf.toString('utf8')));
-          } catch (e) {
-            reject(e);
-          }
-        });
-      });
-
-      request.on('error', (e) => {
-        console.error(`problem with request: ${e.message}`);
-      });
-
-      // req.write(postData);
-      request.end();
-    });
-  },
-
-  fetchTimeTableAsync: function () {
-    return new Promise((resolve, reject) => {
-      let buf;
-      const request = electron.node.https.request(
-        RakutenFmTohoku.timetableUrl,
-        {},
-        (res) => {
-          // res.setEncoding('utf8');
-          res.on('data', (chunk) => {
-            // console.log(`BODY: ${chunk}`);
-            if (buf === undefined) {
-              buf = chunk;
-            } else {
-              buf = electron.node.Buffer.concat([buf, chunk]);
-            }
-          });
-          res.on('end', () => {
-            // console.log('No more data in response.')
-            // console.log(buf)
-
-            if (res.statusCode !== 200) {
-              // console.log(res.statusCode)
-              const error = new Error(`Server returned Status Code: ${res.statusCode}`);
-              error.name = 'ServerError';
-              reject(error);
-              return;
-            }
-
-            try {
-              const jsonp = buf.toString('utf8').trim();
-              resolve(RakutenFmTohoku.parseTimeTable(jsonp));
-            } catch (e) {
-              console.log(e);
-              const error = new Error('Failed to parse time table data.');
-              error.name = 'ParseError';
-              reject(error);
-            }
-          });
-        });
-
-      request.on('error', (e) => {
-        console.log(e);
-        const error = new Error('Failed to fetch timetable data.');
-        error.name = 'ServerError';
-        reject(error);
-      });
-
-      request.end();
-    });
-  },
-
-  /**
-   * [description]
-   * error: ServerError, ParseError
-   * @return {[type]} [description]
-   */
-  fetchTopPageAsync: function () {
-    return new Promise((resolve, reject) => {
-      try {
-        if (App.isLocalDebug) {
-          // const localFilePath = 'private/yahoo/top_0707_after.html';
-          // const localFilePath = 'private/yahoo/top_afterGame.html';
-          const localFilePath = 'test/dummy_top_beforeGame.html';
-          // const localFilePath = 'private/yahoo/inedx.html';
-          // const localFilePath = 'private/yahoo/inedx_removed.html';
-          // const localFilePath = 'private/yahoo/top_cancelled.html';
-          electron.node.fs.readFile(localFilePath, 'utf-8', (err, data) => {
-            if (err) {
-              const error = new Error(err.message);
-              error.name = 'ServerError';
-              reject(error);
-              return;
-            }
-            try {
-              resolve(YahooNPB.parseTopPageData(data));
-            } catch (e) {
-              reject(e);
-            }
-          });
-          return;
-        }
-
-        let buf;
-        const request = electron.node.https.request(YahooNPB.topPageUrl, {}, (res) => {
-          // res.setEncoding('utf8');
-          res.on('data', (chunk) => {
-            // console.log(`BODY: ${chunk}`)
-            if (buf === undefined) {
-              buf = chunk;
-            } else {
-              buf = electron.node.Buffer.concat([buf, chunk]);
-            }
-          });
-
-          res.on('end', () => {
-            // console.log('No more data in response.')
-            if (res.statusCode !== 200) {
-              const error = new Error(`Status Code: ${res.statusCode}`);
-              error.name = 'ServerError';
-              reject(error);
-              return;
-            }
-
-            try {
-              resolve(YahooNPB.parseTopPageData(buf.toString('utf8')));
-            } catch (e) {
-              reject(e);
-            }
-          });
-        });
-
-        request.on('error', (e) => {
-          console.log(e);
-          const error = new Error(e.message);
-          error.name = 'ServerError';
-          reject(error);
-        });
-
-        request.end();
-      } catch (e) {
-        reject(e);
-      }
-    });
-  },
-
-  forceUpdateNowOnAir: function () {
-    this.updateNowOnAirAsync(true);
   },
 
   init: function () {
     this.reset();
 
-    GUI.menu.init(App.preferences.startPage, App.preferences.favoriteTeamId);
+    this.setupNetworkStatusListener();
 
-    GUI.rakutenFmTohokuSection.init(
-      RakutenFmTohoku.hlsSrcUrl,
-      this.disableRadioPlayer,
-      App.audioPlayer.playingEventHander,
-      App.audioPlayer.waitingEventHander
-    );
+    GUI.init(App.preferences);
 
-    GUI.preferenceSection.init(App.preferences, App.isDebug, App.preferences.save);
-    // GUI.preferenceSection.onPreferenceChanged = App.preferences.save;
+    this.checkingUpdatesWorker = this.setupCheckingUpdatesWorker();
+    this.rakutenFmTohokuCrawler = this.setupRakutenFmTohokuCrawler();
+    this.yahooNpbCrawler = this.setupYahooNPBCrawler();
   },
 
   makeNotification: function (card) {
@@ -578,7 +372,11 @@ const App = {
     }
     const title = `[途中経過] ${card.homeTeam.team} vs ${card.awayTeam.team} @ ${card.venue}`;
     const body = `${inningText} ${card.homeTeam.team} ${card.homeTeam.score} - ${card.awayTeam.score} ${card.awayTeam.team}`;
-    const options = { body: body, silent: App.preferences.silentNotification, tag: 'inningChange' };
+    const options = {
+      body: body,
+      silent: App.preferences.silentNotification,
+      tag: `inningChange_${inningText}`
+    };
     const notification = new Notification(title, options);
   },
 
@@ -614,6 +412,10 @@ const App = {
     };
   },
 
+  openGitHubLatestReleasePage: function () {
+    electron.shell.openExternal('https://github.com/ll0s0ll/rakuteneaglesfan/releases/latest');
+  },
+
   openRakutenFm: function () {
     electron.shell.openExternal('https://www.rakuteneagles.jp/radio/#header');
   },
@@ -622,216 +424,118 @@ const App = {
     electron.shell.openExternal('https://baseball.yahoo.co.jp/npb/');
   },
 
-  reScheduleNextScoreUpdateTime: function () {
-    // console.log('reScheduleNextScoreUpdateTime()');
-    const intervalSec = App.ignoreUpdateFreqPref ? 10 : App.preferences.updateFreqMinitus * 60;
-    App.nextScoreUpdateTime = Date.now() + (intervalSec * 1000);
-    // console.log(new Date(App.nextScoreUpdateTime));
-  },
-
-  updateCardsAsync: function (isForceUpdate) {
-    //
-    const nowMilliSec = Date.now();
-    if (App.nextScoreUpdateTime !== undefined &&
-        App.nextScoreUpdateTime > nowMilliSec &&
-        !isForceUpdate) {
-      // console.log(`${App.nextScoreUpdateTime - now}`);
-      return;
-    }
-
-    const intervalSec = App.ignoreUpdateFreqPref ? 10 : App.preferences.updateFreqMinitus * 60;
-    App.nextScoreUpdateTime = nowMilliSec + (intervalSec * 1000);
-    // console.log(new Date(App.nextScoreUpdateTime));
-
-    this.fetchTopPageAsync()
-      .then((topPageData) => {
-        //
-        GUI.today.hideTopPageError();
-
-        var favoriteTeamCard = YahooNPBCard.findCardByTeamId(
-          topPageData.cards,
-          App.preferences.favoriteTeamId
-        );
-
-        if (favoriteTeamCard && !favoriteTeamCard.isTodaysCard()) {
-          favoriteTeamCard = null;
-        }
-
-        this.updateDetailAsync(favoriteTeamCard, nowMilliSec, isForceUpdate)
-          .then((card) => {
-            try {
-              GUI.renderTodaySection(card, nowMilliSec, App.preferences.favoriteTeamId,
-                App.isDebug,
-                App.nextDetailPageUpdateTime);
-              App.makeNotification(card);
-            } catch (e) {
-              console.log(e);
-              GUI.today.showDetailPageError(e, App.isDebug, App.nextDetailPageUpdateTime);
-            }
-          })
-          .catch((e) => {
-            console.log(e);
-            GUI.today.showDetailPageError(e, App.isDebug, App.nextDetailPageUpdateTime);
-          });
-
-        return topPageData;
-      })
-      .then((topPageData) => {
-        try {
-          const favoriteLeagueCards = [];
-          for (const card of topPageData.cards) {
-            if (!card.isTodaysCard()) continue;
-
-            if (card.homeTeam.isSameLeague(App.preferences.favoriteTeamId) ||
-                card.awayTeam.isSameLeague(App.preferences.favoriteTeamId)) {
-              favoriteLeagueCards.push(card);
-            }
-          }
-
-          GUI.CardsSection.render(
-            favoriteLeagueCards,
-            nowMilliSec,
-            App.preferences.favoriteTeamId,
-            App.isDebug);
-        } catch (e) {
-          console.log(e);
-          GUI.CardsSection.showErrorMessage(e, App.isDebug, App.nextScoreUpdateTime);
-        }
-
-        try {
-          GUI.renderStandingsSection(topPageData.npbStandings, App.preferences.favoriteTeamId);
-        } catch (e) {
-          console.log(e);
-          GUI.standingsSection.showErrorMessage(e, App.isDebug, App.nextScoreUpdateTime);
-        }
-      })
-      .catch((e) => {
-        console.log(e);
-        GUI.today.showTopPageError(e, App.isDebug, App.nextScoreUpdateTime);
-        GUI.CardsSection.showErrorMessage(e, App.isDebug, App.nextScoreUpdateTime);
-        GUI.standingsSection.showErrorMessage(e, App.isDebug, App.nextScoreUpdateTime);
-      });
-  },
-
-  updateDetailAsync: function (card, updateMilliSec, isForceUpdate) {
-    return new Promise((resolve, reject) => {
-      if (!card) {
-        resolve(card);
-        return;
-      }
-      //
-      const detailPageUpdateTime = App.nextDetailPageUpdateTime;
-      // App.nextDetailPageUpdateTime = App.calcDetailPageUpdateTime(card, updateMilliSec);
-      App.nextDetailPageUpdateTime = App.nextScoreUpdateTime;
-      // console.log(`${new Date(App.nextDetailPageUpdateTime)}`);
-
-      if (detailPageUpdateTime === undefined ||
-          detailPageUpdateTime <= updateMilliSec ||
-          isForceUpdate) {
-        App.fetchDetailPageAsync(card)
-          .then(({ scoreBoard, scorePlays, startingMembers }) => {
-            card.scoreBoard = scoreBoard;
-            card.scorePlays = scorePlays;
-            card.homeTeam.startingMember = startingMembers ? startingMembers.homeTeamStartingMember : null;
-            card.awayTeam.startingMember = startingMembers ? startingMembers.awayTeamStartingMember : null;
-            resolve(card);
-          })
-          .catch((e) => {
-            reject(e);
-          });
-      } else {
-        // console.log('skipped');
+  setupCheckingUpdatesWorker: function () {
+    const worker = new CheckingUpdatesWorker(
+      App.preferences.autoUpdatesCheckingIntervalDaysDefaultVal
+    );
+    worker.addEventListener('onProcessed', function (e) {
+      GUI.preferenceSection.refreshCheckingUpdatesStatus(
+        e.data.version,
+        e.data.date,
+        e.data.error);
+      if (e.data.version && !e.data.error) {
+        App.Notification.notifyUpdateAvailable(e.data.version);
       }
     });
+    worker.addEventListener('onError', function (e) {
+      GUI.preferenceSection.refreshCheckingUpdatesStatus(
+        null,
+        e.data.date,
+        e.data.error);
+    });
+
+    return worker;
   },
 
-  updateNowOnAirAsync: function (isForceUpdate) {
-    //
-    const now = Date.now();
-    if (App.nextNoaUpdateTime !== undefined &&
-        App.nextNoaUpdateTime > now &&
-        !isForceUpdate) {
-      // console.log('NOA:' + new Date(App.nextNoaUpdateTime));
-      return;
-    }
+  setupNetworkStatusListener: function () {
+    window.addEventListener('offline', function (e) {
+      console.log('offline');
+      GUI.updateNetworkStatus();
+    });
 
-    this.fetchTimeTableAsync()
-      .then((timeTable) => {
-        const p = RakutenFmTohoku.getNowOnAirProgram(timeTable);
+    window.addEventListener('online', function (e) {
+      console.log('online');
+      GUI.updateNetworkStatus();
+      this.yahooNpbCrawler.update(true);
+      this.rakutenFmTohokuCrawler.update(true);
+    }.bind(this));
+  },
 
-        try {
-          GUI.rakutenFmTohokuSection.renderNowOnAir(p);
-        } catch (e) {
-          console.log(e);
-          GUI.rakutenFmTohokuSection.showErrorMessage(e, App.isDebug, App.nextNoaUpdateTime);
+  setupRakutenFmTohokuCrawler: function () {
+    const crawler = new RakutenFmTohokuCrawler(App.preferences);
+    crawler.addEventListener('nowOnAirProgramUpdated', function (e) {
+      GUI.rakutenFmTohokuSection.renderNowOnAir(e.data.program);
+    });
+    crawler.addEventListener('onError', function (e) {
+      const data = e.data;
+      GUI.rakutenFmTohokuSection.showErrorMessage(data.error, data.nextUpdate);
+    });
+    return crawler;
+  },
+
+  setupYahooNPBCrawler: function () {
+    const crawler = new YahooNPBCrawler(App.preferences);
+    crawler.addEventListener('detailPageData', function (e) {
+      GUI.renderTodaySection(
+        e.data.card,
+        e.data.date,
+        App.preferences.favoriteTeamId
+      );
+      App.makeNotification(e.data.card);
+    });
+
+    crawler.addEventListener('topPageData', function (e) {
+      const topPageData = e.data.topPageData;
+      const favoriteTeamId = App.preferences.favoriteTeamId;
+      const favoriteLeagueCards = [];
+      for (const card of topPageData.cards) {
+        if (!card.isTodaysCard()) continue;
+        if (card.homeTeam.isSameLeague(App.preferences.favoriteTeamId) ||
+            card.awayTeam.isSameLeague(App.preferences.favoriteTeamId)) {
+          favoriteLeagueCards.push(card);
         }
+      }
 
-        // 次回更新時刻をプログラムの終了時刻に設定。
-        App.nextNoaUpdateTime = p
-          ? p.endTimeMSec
-          : now + (App.preferences.updateFreqMinitus * 60 * 1000);
-      })
-      .catch((e) => {
-        console.log(e);
-        App.nextNoaUpdateTime = now + (App.preferences.updateFreqMinitus * 60 * 1000);
-        GUI.rakutenFmTohokuSection.showErrorMessage(e, App.isDebug, App.nextNoaUpdateTime);
-      });
+      GUI.today.hideTopPageError();
+      GUI.menu.updateMenu(App.preferences.favoriteTeamId);
+      GUI.CardsSection.render(favoriteLeagueCards, e.data.date, favoriteTeamId);
+      GUI.renderStandingsSection(topPageData.npbStandings, favoriteTeamId);
+    });
+
+    crawler.addEventListener('detailPageError', function (e) {
+      GUI.today.showDetailPageError(e.data.error, e.data.nextUpdateMsec);
+    });
+
+    crawler.addEventListener('topPageError', function (event) {
+      const data = event.data;
+      GUI.today.showTopPageError(data.error, data.nextUpdateMsec);
+      GUI.CardsSection.showErrorMessage(data.error, data.nextUpdateMsec);
+      GUI.standingsSection.showErrorMessage(data.error, data.nextUpdateMsec);
+    });
+
+    return crawler;
   },
 
   quit: function () {
-    // console.log('App::quit()');
     window.close();
   },
 
-  reload: function () {
-    this.reset();
-    this.run();
-  },
-
-  reloadMediaElement: function () {
-    GUI.rakutenFmTohokuSection.reloadMediaElement(RakutenFmTohoku.hlsSrcUrl);
-  },
-
   reset: function () {
-    this.isOnline = navigator.onLine;
-
-    this.cards = undefined;
     this.notifiedScorePlays = undefined;
-
     this.currentInning = undefined;
     this.currentStatus = undefined;
-
-    this.nextNoaUpdateTime = undefined;
-    this.nextDetailPageUpdateTime = undefined;
-    this.nextScoreUpdateTime = undefined;
   },
 
   run: function () {
-    //
-    App.update();
+    this.yahooNpbCrawler.run();
 
-    // 1秒ごとに実行。
-    if (App.timerId) clearTimeout(App.timerId);
-    App.timerId = setInterval(App.update, 1 * 1000);
-  },
-
-  update: function () {
-    if (navigator.onLine) {
-      // console.log('Online');
-
-      // オフラインからオンラインに変わった場合は、強制的にアップデート。
-      const isForceUpdate = !App.isOnline && navigator.onLine ? true : false;
-      App.updateCardsAsync(isForceUpdate);
-      if (!App.disabledNowOnAir) {
-        App.updateNowOnAirAsync(isForceUpdate);
-      }
-    } else {
-      // console.log('offline');
+    if (App.preferences.autoUpdatesChecking) {
+      this.checkingUpdatesWorker.run();
     }
 
-    GUI.menu.updateMenu(App.preferences.favoriteTeamId);
-    GUI.updateNetworkStatus();
-    App.isOnline = navigator.onLine;
+    if (!DISABLE_RADIO) {
+      this.rakutenFmTohokuCrawler.run();
+    }
   }
 }; // App
 

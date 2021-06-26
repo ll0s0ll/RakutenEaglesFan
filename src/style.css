@@ -472,12 +472,12 @@ body {
 }
 
 .preference-section__dl {
-  margin: 15px 0px 15px 30px;
-  font-size: 1.1em;
+  margin: 0px 0px 10px 30px;
+  font-size: 1.0em;
 }
 
 .preference-section__dd {
-  margin: 5px 0px 5px 25px;
+  margin: 5px 0px 5px 20px;
 }
 
 .preference-section__buttons {
@@ -486,6 +486,11 @@ body {
 
 .preference-section__error-message {
   margin: 0px;
+}
+
+.preference-section__update-message {
+  margin: 0px;
+  font-size: 0.9em;
 }
 
 .team1 {

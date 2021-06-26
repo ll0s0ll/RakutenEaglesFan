@@ -120,7 +120,7 @@ const YahooNPB = {
 
     for (const league of gmCard.getElementsByTagName('section')) {
       // Kind
-      const kindH1 = league.getElementsByClassName('bb-socore__title');
+      const kindH1 = league.getElementsByClassName('bb-score__title');
       if (kindH1.length === 0) {
         // 試合がないときは、種別名も表示されない。
         continue;
