@@ -7,7 +7,7 @@ const GUI = {
 
     GUI.menu.init(preferences.startPage, preferences.favoriteTeamId);
     GUI.preferenceSection.init(preferences, preferences.save);
-    GUI.rakutenFmTohokuSection.init();
+    GUI.radioSection.init();
   },
 
   errorMsgs: {
@@ -81,6 +81,7 @@ const GUI = {
     GUI.today.constructH2();
     GUI.today.constructCard(card);
     GUI.today.constructScoreBoardTable(card);
+    GUI.today.constructVideoList(card);
     GUI.today.constructScorePlay(card);
     GUI.today.constructNoGameMessage(card, favoriteTeamId);
     GUI.today.constructFooter(updateMsec);
@@ -89,6 +90,11 @@ const GUI = {
   switchTab: function (tab) {
     // console.log('switchTab()');
     $('#tabs').tabs('option', 'active', tab);
+  },
+
+  switchRadioSectionTab: function (tabNumber) {
+    // $('#tabs').tabs('option', 'active', 3);
+    $('#radioSectionTabs').tabs('option', 'active', tabNumber);
   },
 
   updateNetworkStatus: function () {
@@ -192,10 +198,10 @@ const GUI = {
       const now = new Date(updateMsec);
       const dayText = ['日', '月', '火', '水', '木', '金', '土'][now.getDay()];
       const h2Text = `${now.getMonth() + 1}月${now.getDate()}日（${dayText}）の日程・結果`;
-      $('#cardsSection h2').text(h2Text);
+      $('#cardsSectionH2').text(h2Text);
 
       const cardsUL = document.createElement('ul');
-      cardsUL.className = 'cards-section-contents__cards cards';
+      cardsUL.className = 'cards-section__cards cards';
 
       for (const card of cards) {
         // console.log(card)
@@ -214,7 +220,7 @@ const GUI = {
         contents.appendChild(cardsUL);
       } else {
         const p = document.createElement('p');
-        p.className = 'cards-section-contents__no-game';
+        p.className = 'cards-section__no-game';
         if (YahooNPB.isPacificLeagueTeam(favoriteTeamId)) {
           p.className += ' team15';
         } else {
@@ -270,7 +276,7 @@ const GUI = {
       $('#todaySectionMenu').attr('href', 'javascript:GUI.switchTab(0)');
       $('#cardsSectionMenu').attr('href', 'javascript:GUI.switchTab(1)');
       $('#standingsSectionMenu').attr('href', 'javascript:GUI.switchTab(2)');
-      $('#rakutenFmTohokuSectionMenu').attr('href', 'javascript:GUI.switchTab(3)');
+      $('#radioSectionMenu').attr('href', 'javascript:GUI.switchTab(3)');
       $('#preferenceSectionMenu').attr('href', 'javascript:GUI.switchTab(4)');
       $('#quitMenu').attr('href', 'javascript:App.quit()');
 
@@ -578,7 +584,7 @@ const GUI = {
     }
   }, // preferenceSection
 
-  rakutenFmTohokuSection: {
+  radioSection: {
     audioPlayer: {
       isStalled: false,
       timeoutId: null,
@@ -687,6 +693,14 @@ const GUI = {
       }
     }, // audioPlayer
 
+    formatTimeString: function (timeStr) {
+      return timeStr.replace(/^(\d{2})/, '$1:').replace(/^0/, '');
+    },
+
+    formatTitleString: function (titleStr) {
+      return titleStr.replace(/\[|\]/g, '');
+    },
+
     init: function () {
       if (!DISABLE_RADIO) {
         this.audioPlayer.init();
@@ -694,19 +708,47 @@ const GUI = {
     },
 
     renderNowOnAir: function (program) {
-      $('#rakutenFmTohokuSectionErrorMsg').text('').hide();
+      $('#radioSectionErrorMsg').text('').hide();
       let html = '';
       if (program) {
-        const startText = program.start.replace(/^(\d{2})/, '$1:').replace(/^0/, '');
-        const endText = program.end.replace(/^(\d{2})/, '$1:').replace(/^0/, '');
-        const titleText = program.title.replace(/\[|\]/g, '');
+        const startText = this.formatTimeString(program.start);
+        const endText = this.formatTimeString(program.end);
+        const titleText = this.formatTitleString(program.title);
         const contentText = program.content.replace(/^<br>/, '');
-        html = `<p class="now-on-air__term">${startText} - ${endText}</p><h4 class="now-on-air__h4">${titleText}</h4><p class="now-on-air__content">${contentText}</p>`;
+        html = `<p class="radio-section__now-on-air-term">${startText} - ${endText}</p><h4 class="radio-section__now-on-air-h4">${titleText}</h4><p class="radio-section__now-on-air-content">${contentText}</p>`;
       } else {
-        html = '<p class="now-on-air__no-program">番組情報はありません</p>';
+        html = '<p>番組情報はありません</p>';
       }
 
       $('#nowOnAirProgram').html(html);
+    },
+
+    renderTimeTable: function (timeTable) {
+      $('#radioSectionTabs').tabs({
+        show: { effect: 'fade', duration: 150 },
+        activate: function (event, ui) {
+          ui.newTab.children().addClass('radio-section__selected-tab-menu');
+          ui.oldTab.children().removeClass('radio-section__selected-tab-menu');
+        }
+      });
+
+      const ul = document.getElementById('radioSectionTimeTableUl');
+      ul.innerHTML = '';
+      for (const p of timeTable) {
+        let li = '';
+
+        const nowMsec = Date.now();
+        if (p.startTimeMSec <= nowMsec && p.endTimeMSec > nowMsec) {
+          li += '<li class="radio-section__timetable-li radio-section__timetable-li_highlight-background">';
+        } else {
+          li += '<li class="radio-section__timetable-li">';
+        }
+        li += `<p class="radio-section__timetable-program-term">${this.formatTimeString(p.start)}<br>|<br>${this.formatTimeString(p.end)}</p>`;
+        li += `<p class="radio-section__timetable-program-content"><b>${this.formatTitleString(p.title)}</b>${p.content}</p>`;
+        li += '</li>';
+
+        ul.innerHTML = ul.innerHTML + li;
+      }
     },
 
     showErrorMessage: function (e, nextNoaUpdateTime) {
@@ -727,9 +769,9 @@ const GUI = {
       } else {
         msg += ` ${d.getHours()}時${d.getMinutes()}分に再試行します。`;
       }
-      $('#rakutenFmTohokuSectionErrorMsg').text(msg).show();
+      $('#radioSectionErrorMsg').text(msg).show();
     }
-  }, // rakutenFmTohokuSection
+  }, // radioSection
 
   standingsSection: {
     showErrorMessage: function (e, nextScoreUpdateTime) {
@@ -867,11 +909,50 @@ const GUI = {
           }
         }
 
-        const html = `<li class="score-plays__li team${teamId}"><b>${sp.inningText}</b> ${sp.state}<br><b>${sp.order} ${sp.player}</b><br>${sp.summary}</li>`;
+        let videoDiv = '';
+        if (sp.video) {
+          videoDiv = `
+          <div class="score-plays__video">
+          <a href="JavaScript:App.execProtocol('${sp.video.pageUrl}')">
+          <img class="score-plays__video-thumbnail" src="${sp.video.thumbnailUrl}">
+          <span class="score-plays__video-title">${sp.video.title}</span></a>
+          </div>`;
+        }
+
+        const html = `<li class="score-plays__li team${teamId}">
+        <b>${sp.inningText}</b> ${sp.state}<br>
+        <b>${sp.order} ${sp.player}</b><br>
+        ${sp.summary}
+        ${videoDiv}
+        </li>`;
+
         ul.innerHTML = html + ul.innerHTML;
       }
 
       $('#todaysScorePlays').show();
+    },
+
+    constructVideoList: function (card) {
+      if (!card || !card.videoList || card.videoList.length === 0) {
+        $('#todaySectionVideo').hide();
+        return;
+      }
+
+      const ul = document.getElementById('todaySectionVideoList');
+      if (!ul) return;
+
+      ul.innerHTML = '';
+
+      for (const video of card.videoList) {
+        const li = document.createElement('li');
+        li.className = 'today-section__video-li';
+        li.innerHTML = `<a href="JavaScript:App.execProtocol('${video.pageUrl}')">
+        <img class="today-section__video-thumbnail" src="${video.thumbnailUrl}">
+        <span class="today-section__video-title">${video.title}</span></a>`;
+        ul.append(li);
+      }
+
+      $('#todaySectionVideo').show();
     },
 
     hideTopPageError: function () {

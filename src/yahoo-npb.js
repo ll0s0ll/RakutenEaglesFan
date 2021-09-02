@@ -43,6 +43,8 @@ const YahooNPB = {
     9: 'ロッテ',
     11: 'オリックス',
     12: 'ソフトバンク',
+    15: '全パ',
+    16: '全セ',
     376: '楽天'
   },
 
@@ -52,7 +54,8 @@ const YahooNPB = {
     3: 'DeNA', // ＤｅＮＡ
     4: '中日',
     5: '阪神',
-    6: '広島'
+    6: '広島',
+    16: '全セ'
   },
 
   pacificLeagueTeams: {
@@ -61,6 +64,7 @@ const YahooNPB = {
     9: 'ロッテ',
     11: 'オリックス',
     12: 'ソフトバンク',
+    15: '全パ',
     376: '楽天'
   },
 
@@ -234,7 +238,8 @@ const YahooNPB = {
     return {
       scoreBoard: this.parseScoreBoard(htmlObj),
       scorePlays: this.parseScorePlays(htmlObj),
-      startingMembers: this.parseStartingMembers(htmlObj)
+      startingMembers: this.parseStartingMembers(htmlObj),
+      videoList: this.parseVideoList(htmlObj)
     };
   },
 
@@ -331,6 +336,31 @@ const YahooNPB = {
         const t = text.item(0).textContent.replace(/\r|\r\n|\n|\t|\s{2,}/g, '');
         scorePlay.summary += t;
       }
+
+      // 動画部分
+      const videoDiv = tr.getElementsByClassName('bb-gameTable__item')[0];
+      if (videoDiv) {
+        const video = new YahooNPBVideo();
+
+        const thumbnailImg = videoDiv.getElementsByClassName('bb-gameTable__itemVideoThumbnailImg')[0];
+        if (thumbnailImg) {
+          video.thumbnailUrl = thumbnailImg.src;
+        }
+
+        const durationSpan = videoDiv.getElementsByClassName('bb-gameTable__itemVideoTime')[0];
+        if (durationSpan) {
+          video.durationText = durationSpan.textContent;
+        }
+
+        const aElement = videoDiv.getElementsByClassName('bb-gameTable__itemTitle')[0];
+        if (aElement) {
+          video.title = aElement.textContent;
+          video.pageUrl = aElement.href.replace('file:///', 'https://baseball.yahoo.co.jp/');
+        }
+
+        scorePlay.video = video;
+      }
+
       // console.log(scorePlay);
       scorePlays.push(scorePlay);
     }
@@ -520,8 +550,52 @@ const YahooNPB = {
       throw new Error('Invalid team id.');
     }
     return name;
-  }
+  },
 
+  parseVideoList: function (detailPageHtmlObj) {
+    //
+    const videoList = [];
+
+    const section = detailPageHtmlObj.getElementById('gm_mv');
+    // console.log(section);
+    if (!section) return videoList;
+
+    const ul = section.getElementsByTagName('ul')[0];
+    // console.log(ul);
+    if (!ul) return videoList;
+
+    for (const li of ul.children) {
+      // console.log(li);
+      const video = new YahooNPBVideo();
+
+      // サムネイルURL
+      const img = li.getElementsByClassName('bb-videoList__itemVideoThumbnailImg')[0];
+      if (img) {
+        video.thumbnailUrl = img.src;
+      }
+
+      // 再生時間
+      const span = li.getElementsByClassName('bb-videoList__itemVideoTime')[0];
+      if (span) {
+        video.durationText = span.innerHTML;
+      }
+
+      // タイトル、ページURL
+      const text = li.getElementsByClassName('bb-videoList__itemText')[0];
+      if (text) {
+        const a = text.getElementsByTagName('a')[0];
+        if (a) {
+          video.pageUrl = a.href.replace('file:///', 'https://baseball.yahoo.co.jp/');
+          video.title = a.innerHTML;
+        }
+      }
+
+      videoList.push(video);
+    }
+
+    // console.log(videoList);
+    return videoList;
+  }
 }; // YahooNPB
 
 /** 試合に関するクラス */
@@ -601,6 +675,11 @@ class YahooNPBCard {
     }
     for (const c of cards) {
       if (c.homeTeam.id === teamId || c.awayTeam.id === teamId) {
+        return c;
+      }
+
+      // オールスター戦の場合
+      if (c.homeTeam.id === 15 || c.homeTeam.id === 16) {
         return c;
       }
     }
@@ -749,7 +828,7 @@ class YahooNPBTeam {
    * 引数で与えられたチームが、同じリーグに所属するチームか比較する。
    * @param  {Number}  teamId 比較するチームのid値
    * @return {Boolean}        同じリーグのチームの場合はtrue、異なる場合はfalseを返す。
-   * @throws {TypeError} 引数の型が不正な場合。
+   * @throws {TypeError, Error} 引数の型が不正な場合、不正なteamIdの場合。
    */
   isSameLeague (teamId) {
     assert(this.id, 'Invalid id value.');
@@ -776,6 +855,7 @@ class YahooNPBScorePlay {
     this.player = '';
     this.state = '';
     this.summary = '';
+    this.video = null;
   }
 
   get [Symbol.toStringTag] () {
@@ -795,12 +875,22 @@ class YahooNPBScorePlay {
 
     for (const key of Object.keys(this)) {
       if (typeof this[key] === 'function') continue;
-      if (key === 'summary') continue; // summaryは変化するので除外する。
+      if (key === 'summary' || key === 'video') continue;// summary、videoは変化するので除外する。
       if (!other[key] || other[key] !== this[key]) return false;
     }
     return true;
   }
 } // YahooNPBScorePlay
+
+/** 動画に関するクラス */
+class YahooNPBVideo {
+  constructor () {
+    this.title = '';
+    this.thumbnailUrl = '';
+    this.pageUrl = '';
+    this.durationText = '';
+  }
+}
 
 if (typeof module !== 'undefined') {
   module.exports = {

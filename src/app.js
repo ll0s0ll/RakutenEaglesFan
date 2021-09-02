@@ -270,7 +270,7 @@ const App = {
   checkUpdatesNow: function () {
     this.checkingUpdatesWorker.checkUpdatesNow();
   },
-  
+
   execProtocol: function (url) {
     electron.shell.openExternal(url);
   },
@@ -278,9 +278,10 @@ const App = {
   init: function () {
     this.reset();
 
-    this.setupNetworkStatusListener();
-
     GUI.init(App.preferences);
+
+    this.setupKeyboardShortcuts();
+    this.setupNetworkStatusListener();
 
     this.checkingUpdatesWorker = this.setupCheckingUpdatesWorker();
     this.rakutenFmTohokuCrawler = this.setupRakutenFmTohokuCrawler();
@@ -447,6 +448,34 @@ const App = {
     return worker;
   },
 
+  setupKeyboardShortcuts: function () {
+    document.addEventListener('keyup', (event) => {
+      switch (event.keyCode) {
+        case 49: // Digit1 to 今日の試合
+          GUI.switchTab(0);
+          break;
+        case 50: // Digit2 to パ・リーグ
+          GUI.switchTab(1);
+          break;
+        case 51: // Digit3 to 順位表
+          GUI.switchTab(2);
+          break;
+        case 52: // Digit4 to ラジオ
+          GUI.switchTab(3);
+          break;
+        case 53: // Digit5 to 設定
+          GUI.switchTab(4);
+          break;
+        case 78: // KeyN to NOW ON AIR
+          GUI.switchRadioSectionTab(0);
+          break;
+        case 84: // KeyT to TIME TABLE
+          GUI.switchRadioSectionTab(1);
+          break;
+      }
+    });
+  },
+
   setupNetworkStatusListener: function () {
     window.addEventListener('offline', function (e) {
       console.log('offline');
@@ -464,11 +493,12 @@ const App = {
   setupRakutenFmTohokuCrawler: function () {
     const crawler = new RakutenFmTohokuCrawler(App.preferences);
     crawler.addEventListener('nowOnAirProgramUpdated', function (e) {
-      GUI.rakutenFmTohokuSection.renderNowOnAir(e.data.program);
+      GUI.radioSection.renderNowOnAir(e.data.program);
+      GUI.radioSection.renderTimeTable(e.data.programsToday);
     });
     crawler.addEventListener('onError', function (e) {
       const data = e.data;
-      GUI.rakutenFmTohokuSection.showErrorMessage(data.error, data.nextUpdate);
+      GUI.radioSection.showErrorMessage(data.error, data.nextUpdate);
     });
     return crawler;
   },
@@ -485,20 +515,30 @@ const App = {
     });
 
     crawler.addEventListener('topPageData', function (e) {
+      let error = null;
       const topPageData = e.data.topPageData;
       const favoriteTeamId = App.preferences.favoriteTeamId;
       const favoriteLeagueCards = [];
       for (const card of topPageData.cards) {
         if (!card.isTodaysCard()) continue;
-        if (card.homeTeam.isSameLeague(App.preferences.favoriteTeamId) ||
-            card.awayTeam.isSameLeague(App.preferences.favoriteTeamId)) {
-          favoriteLeagueCards.push(card);
+        try {
+          if (card.homeTeam.isSameLeague(App.preferences.favoriteTeamId) ||
+              card.awayTeam.isSameLeague(App.preferences.favoriteTeamId)) {
+            favoriteLeagueCards.push(card);
+          }
+        } catch (e) {
+          console.error(e);
+          error = e;
         }
       }
 
       GUI.today.hideTopPageError();
       GUI.menu.updateMenu(App.preferences.favoriteTeamId);
-      GUI.CardsSection.render(favoriteLeagueCards, e.data.date, favoriteTeamId);
+      if (error == null) {
+        GUI.CardsSection.render(favoriteLeagueCards, e.data.date, favoriteTeamId);
+      } else {
+        GUI.CardsSection.showErrorMessage(error, e.data.nextUpdateMsec);
+      }
       GUI.renderStandingsSection(topPageData.npbStandings, favoriteTeamId);
     });
 

@@ -88,6 +88,7 @@ class YahooNPBCrawler extends EventTarget {
               ? details.startingMembers.homeTeamStartingMember : null;
             card.awayTeam.startingMember = details.startingMembers
               ? details.startingMembers.awayTeamStartingMember : null;
+            card.videoList = details.videoList;
             resolve(card);
           } catch (e) {
             reject(e);
@@ -207,7 +208,11 @@ class YahooNPBCrawler extends EventTarget {
     this.fetchTopPage()
       .then((topPageData) => {
         const event = new Event('topPageData');
-        event.data = { topPageData: topPageData, date: nowMsec };
+        event.data = {
+          topPageData: topPageData,
+          date: nowMsec,
+          nextUpdateMsec: nowMsec + intervalMsec
+        };
         this.dispatchEvent(event);
 
         const favoriteTeamCard = YahooNPBCard.findCardByTeamId(
@@ -215,8 +220,6 @@ class YahooNPBCrawler extends EventTarget {
           this.preferences.favoriteTeamId
         );
         return favoriteTeamCard;
-        return (favoriteTeamCard && favoriteTeamCard.isTodaysCard())
-          ? favoriteTeamCard : null;
       })
       .then((favoriteTeamCard) => {
         this.fetchCardDetails(favoriteTeamCard)

@@ -1,6 +1,6 @@
 {
   "name": "RakutenEaglesFan",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "東北楽天ゴールデンイーグルスを応援するアプリケーションです。",
   "homepage": "https://github.com/ll0s0ll/rakuteneaglesfan",
   "main": "src/main.js",

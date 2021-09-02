@@ -42,12 +42,6 @@ body {
   color: red;
 }
 
-.section {
-  display: none;
-  width: 350px;
-  padding: 0px;
-}
-
 .menu {
   width: 350px;
   margin: 15px 0px;
@@ -57,10 +51,9 @@ body {
 }
 
 .today-section {
-  /* display: none;
+  display: none;
   width: 350px;
-  margin: 0px;
-  padding: 0px; */
+  padding: 0px;
 }
 
 .today-section__h2 {
@@ -68,7 +61,15 @@ body {
   text-align: center;
 }
 
-.today-section__today-section-contents {
+.today-section__h3 {
+  font-size: 1.1em;
+  margin: 25px 15px 10px 15px;
+  padding: 0px 0px 0px 5px;
+  border-bottom: 1px solid #D3D3D3;
+}
+
+.today-section__contents {
+  min-height: 315px;
 }
 
 .today-section__card {
@@ -80,6 +81,37 @@ body {
   margin: 15px 15px;
 }
 
+.today-section__video {
+  /* 初めは隠しておく*/
+  display: none;
+}
+
+.today-section__video-ul {
+  width: 320px;
+  margin: 10px 15px;
+  padding: 0px;
+  list-style: none;
+}
+
+.today-section__video-li {
+    display: inline-block;
+    width: 150px;
+    margin: 5px;
+    padding: 0px;
+    vertical-align: top;
+    font-size: 0.9em;
+}
+
+.today-section__video-thumbnail {
+    display: block;
+    width: 140px;
+    margin: 0px auto;
+}
+
+.today-section__video-title {
+    display: block;
+    margin: 0px 5px;
+}
 
 .today-section__score-plays {
   margin: 15px 0px;
@@ -98,10 +130,6 @@ body {
   background-repeat: no-repeat;
   background-color:rgba(255, 255, 255, 0.95);
   background-blend-mode:lighten;
-}
-
-.today-section__footer {
-  margin: 0px 0px 10px 0px;
 }
 
 .today-section__error-message {
@@ -173,16 +201,45 @@ body {
   background-blend-mode:lighten;
 }
 
-.footer {
-  width: 350px;
+.score-plays__video {
+    margin: 10px 0px 0px 0px;
+    text-align: center;
 }
 
-.footer__last-update {
+.score-plays__video-thumbnail {
+  display: block;
+  /* width: 240px; */
+  width: 160px;
+  margin: 0px auto;
+}
+
+.score-plays__video-title {
+  display: block;
+  font-size: 0.9em;
+}
+
+.footer {
+  width: 350px;
+  min-height: 30px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-end;
+  text-align: center;
+  font-size: 0.8em;
+  font-style: italic;
+  color: #999999;
+}
+
+.footer__text {
   margin: 0px;
 }
 
 .cards-section {
-  margin: 0px 0px;
+  display: none;
+  width: 350px;
+  padding: 0px;
 }
 
 .cards-section__h2 {
@@ -191,26 +248,18 @@ body {
 }
 
 .cards-section__contents  {
-  margin: 0px;
-}
-
-.cards-section__footer {
-  margin: 0px 0px 10px 0px;
+  min-height: 315px;
 }
 
 .cards-section__error-message {
   margin: 0px;
 }
 
-.cards-section-contents {
-  min-height: 300px;
-}
-
-.cards-section-contents__cards {
+.cards-section__cards {
   margin: 0px auto;
 }
 
-.cards-section-contents__no-game {
+.cards-section__no-game {
   height: 160px;
   padding-top: 140px;
   font-style: italic;
@@ -312,18 +361,10 @@ body {
   padding: 0px;
 }
 
-.last-update {
-  text-align: center;
-  font-size: 0.8em;
-  font-style: italic;
-  color: #999999;
-}
-
 .standings-section {
-  /* display: none;
+  display: none;
   width: 350px;
-  margin: 0px;
-  padding: 0px; */
+  padding: 0px;
 }
 
 .standings-section__h2 {
@@ -332,14 +373,11 @@ body {
 }
 
 .standings-section__contents {
+  min-height: 315px;
 }
 
 .standings-section__standings {
   margin: 15px 15px;
-}
-
-.standings-section__footer {
-    margin: 0px 0px 10px 0px;
 }
 
 .standings-section__error-message {
@@ -382,73 +420,114 @@ body {
   padding-left: 5px;
 }
 
-.rakuten-fm-tohoku-section {
-  /* display: none;
+.radio-section {
+  display: none;
   width: 350px;
-  margin: 0px;
-  padding: 0px; */
+  padding: 0px;
 }
 
-.rakuten-fm-tohoku-section__h2 {
+.radio-section__contents {
+  min-height: 315px;
+}
+
+.radio-section__h2 {
   text-align: center;
   font-size: 1.4em;
 }
 
-.rakuten-fm-tohoku-section__audio-player {
-  margin: 0px 0px;
-  text-align: center;
-}
-
-.rakuten-fm-tohoku-section__now-on-air {
-  margin: 10px 20px;
-}
-
-.rakuten-fm-tohoku-section__footer {
-  margin: 0px 0px 10px 0px;
-  text-align: center;
-  font-size: 0.8em;
-  font-style: italic;
-  color: #999999;
-}
-
-.rakuten-fm-tohoku-section__error-message {
-  margin: 0px;
-}
-
-.now-on-air {
-  height: 250px;
-}
-
-.now-on-air__h3 {
+.radio-section__h3 {
   margin: 5px 0px;
   padding: 0px;
   font-size: 1.1em;
-  /* font-size: 2.5em; */
-  /* font-weight: bold; */
 }
 
-.now-on-air__h4 {
-  margin: 0px;
-  padding: 0px;
-  /* font-size: 2.5em; */
-  /* font-weight: bold; */
+.radio-section__audio-player {
+  margin: 0px 0px;
+  text-align: center;
 }
 
-.now-on-air__term {
+.radio-section__tab-menu-ul {
+  margin: 15px auto;
+  padding: 0px 0px;
+  list-style: none;
+  text-align: center;
+}
+
+.radio-section__tab-menu-li {
+  margin: 0px 0px;
+  padding: 0px 10px;
+  display: inline-block;
+  text-align: center;
+}
+
+.radio-section__tab-menu-li_left-border { /*:last-child*/
+  border-left: 1px solid #D3D3D3;
+}
+
+.radio-section__selected-tab-menu {
+  text-decoration: none;
+  color: inherit;
+}
+
+.radio-section__now-on-air {
+  margin: 10px 20px;
+}
+
+.radio-section__now-on-air-term {
   margin: 0px 0px;
   font-size: 1.0em;
 }
 
-.now-on-air__content {
-  height: 165px;
-  margin: 10px 0px;
-  font-size: 1.0em;
-  overflow-y: scroll;
+.radio-section__now-on-air-h4 {
+  margin: 0px;
+  padding: 0px;
 }
 
-.now-on-air__no-program {
-  /* font-size: 0.8em; */
-  /* font-style: italic; */
+.radio-section__now-on-air-content {
+  margin: 10px 0px;
+  font-size: 1.0em;
+}
+
+.radio-section__timetable {
+  margin: 10px 20px;
+}
+
+.radio-section__timetable-ul{
+    margin: 0px 0px;
+    padding: 0px 0px;
+    list-style: none;
+    border-left: 1px solid #D3D3D3;
+    border-right: 1px solid #D3D3D3;
+    border-bottom: 1px solid #D3D3D3;
+}
+
+.radio-section__timetable-li {
+    display: flex;
+    border-top: 1px solid #D3D3D3;
+    background-color: #F9F9F9F9;
+}
+
+.radio-section__timetable-li_highlight-background {
+    background-color: #FFE8E8;
+}
+
+.radio-section__timetable-program-term {
+    width: 40px;
+    margin: auto 0px;
+    padding: 10px 10px;
+    text-align: center;
+}
+
+.radio-section__timetable-program-content {
+    width: 280px;
+    margin: 0px 0px;
+    padding: 5px 5px;
+    border-left: 1px solid #D3D3D3;
+    background-color: #FFFFFF;
+}
+
+.radio-section__error-message {
+  margin: 0px;
 }
 
 .status__message {
@@ -462,9 +541,9 @@ body {
 
 
 .preference-section {
-  /* display: none;
+  display: none;
   width: 350px;
-  margin: 0px 0px 10px 0px; */
+  padding: 0px;
 }
 
 .preference-section__h2 {
