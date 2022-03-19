@@ -108,15 +108,6 @@ const YahooNPB = {
   parseCards: function (topPageHtmlObj) {
     const cards = [];
 
-    var date = null;
-    for (const title of topPageHtmlObj.getElementsByClassName('bb-head02__title')) {
-      const result = title.textContent.match(/^\d{1,2}月\d{1,2}日/);
-      if (result) {
-        date = result[0];
-        break;
-      }
-    }
-
     const gmCard = topPageHtmlObj.getElementById('gm_card');
     if (gmCard === null) {
       return cards;
@@ -134,8 +125,11 @@ const YahooNPB = {
       // Card
       for (const card of league.getElementsByClassName('bb-score__item')) {
         const c = new YahooNPBCard();
-        c.date = date;
         c.kind = kind;
+
+        const dateStr = card.getElementsByClassName('bb-score__date').item(0);
+        const dateParseResult = dateStr.textContent.match(/^\d{1,2}\/\d{1,2}/);
+        c.date = dateParseResult != null ? dateParseResult[0] : null;
 
         const url = card.getElementsByClassName('bb-score__content').item(0).href;
         c.detailPageUrl = url ? url.match(/(.*\/).*$/)[1] + 'top' : null;
@@ -148,16 +142,16 @@ const YahooNPB = {
         for (const team of card.getElementsByClassName('bb-score__team').item(0).children) {
           if (team.classList.contains('bb-score__homeLogo')) {
             c.homeTeam.team = team.textContent;
-            c.homeTeam.id = Number(team.classList.item(1).match(/bb-score__homeLogo--team(.*)$/)[1]);
+            c.homeTeam.id = Number(team.classList.item(1).match(/bb-score__homeLogo--npbTeam(.*)$/)[1]);
           } else if (team.classList.contains('bb-score__awayLogo')) {
             c.awayTeam.team = team.textContent;
-            c.awayTeam.id = Number(team.classList.item(1).match(/bb-score__awayLogo--team(.*)$/)[1]);
+            c.awayTeam.id = Number(team.classList.item(1).match(/bb-score__awayLogo--npbTeam(.*)$/)[1]);
           }
         }
 
         // Info
         for (const info of card.getElementsByClassName('bb-score__info').item(0).children) {
-          if (info.className === 'bb-score__home' || info.className === 'bb-score__away') {
+          if (info.className === 'bb-score__playerHome' || info.className === 'bb-score__playerAway') {
             // Player
             const p = [];
             for (const player of info.getElementsByClassName('bb-score__player')) {
@@ -185,12 +179,12 @@ const YahooNPB = {
                 }
               }
             }
-            if (info.className === 'bb-score__home') {
+            if (info.className === 'bb-score__playerHome') {
               c.homeTeam.players = p;
-            } else if (info.className === 'bb-score__away') {
+            } else if (info.className === 'bb-score__playerAway') {
               c.awayTeam.players = p;
             }
-          } else if (info.className === 'bb-score__detail') {
+          } else if (info.className === 'bb-score__wrap') {
             const time = info.getElementsByTagName('time');
             if (time.length !== 0) {
               c.scheduledStartTime = time.item(0).textContent;
@@ -693,7 +687,8 @@ class YahooNPBCard {
   isTodaysCard () {
     // return true;
     const today = new Date();
-    const todayText = (today.getMonth() + 1) + '月' + today.getDate() + '日';
+    // const todayText = (today.getMonth() + 1) + '月' + today.getDate() + '日';
+    const todayText = (today.getMonth() + 1) + '/' + today.getDate();
     return this.date === todayText;
   }
 
