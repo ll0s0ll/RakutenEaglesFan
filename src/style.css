@@ -81,6 +81,22 @@ body {
   margin: 15px 15px;
 }
 
+.today-section__highlight {
+  display: none; /* 初めは隠しておく*/
+  width: 320px;
+  margin: 15px 15px;
+}
+
+.today-section__highlight-h3 {
+  padding: 0px 0px 0px 5px;
+  font-size: 1.1em;
+  border-bottom: 1px solid #D3D3D3;
+}
+
+.today-section__highlight-p {
+  padding: 0px 5px;
+}
+
 .today-section__video {
   /* 初めは隠しておく*/
   display: none;
@@ -436,9 +452,10 @@ body {
 }
 
 .radio-section__h3 {
-  margin: 5px 0px;
-  padding: 0px;
   font-size: 1.1em;
+  margin: 25px 0px 10px 0px;
+  padding: 0px 0px 0px 5px;
+  border-bottom: 1px solid #D3D3D3;
 }
 
 .radio-section__audio-player {
@@ -464,36 +481,33 @@ body {
   border-left: 1px solid #D3D3D3;
 }
 
-.radio-section__selected-tab-menu {
-  text-decoration: none;
-  color: inherit;
-}
-
 .radio-section__now-on-air {
-  margin: 10px 20px;
+  margin: 10px 15px;
 }
 
 .radio-section__now-on-air-term {
   margin: 0px 0px;
+  padding: 0px 5px;
   font-size: 1.0em;
 }
 
 .radio-section__now-on-air-h4 {
   margin: 0px;
-  padding: 0px;
+  padding: 0px 5px;
 }
 
 .radio-section__now-on-air-content {
   margin: 10px 0px;
+  padding: 0px 5px;
   font-size: 1.0em;
 }
 
 .radio-section__timetable {
-  margin: 10px 20px;
+  margin: 10px 15px;
 }
 
 .radio-section__timetable-ul{
-    margin: 0px 0px;
+    margin: 0px 5px;
     padding: 0px 0px;
     list-style: none;
     border-left: 1px solid #D3D3D3;

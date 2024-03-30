@@ -3,10 +3,10 @@
 
 class YahooNPBCrawler extends EventTarget {
   //
-  constructor (preferences) {
+  constructor (app) {
     super();
 
-    this.preferences = preferences;
+    this.app = app;
     this.tickerIntervalSec = 60;
 
     this.worker = new Worker('ticker.js');
@@ -53,6 +53,7 @@ class YahooNPBCrawler extends EventTarget {
           }
           try {
             const details = YahooNPB.parseDetailPage(data);
+            card.highlight = details.highlight;
             card.scoreBoard = details.scoreBoard;
             card.scorePlays = details.scorePlays;
             card.homeTeam.startingMember = details.startingMembers
@@ -82,6 +83,7 @@ class YahooNPBCrawler extends EventTarget {
           try {
             // console.log(buf)
             const details = YahooNPB.parseDetailPage(buf.toString('utf8'));
+            card.highlight = details.highlight;
             card.scoreBoard = details.scoreBoard;
             card.scorePlays = details.scorePlays;
             card.homeTeam.startingMember = details.startingMembers
@@ -190,7 +192,18 @@ class YahooNPBCrawler extends EventTarget {
   update (isForce) {
     //
     const nowMsec = Date.now();
-    const intervalMsec = this.preferences.updateFreqMinitus * 60 * 1000;
+    let intervalMsec = this.app.preferences.updateFreqMinitus * 60 * 1000;
+
+    // 試合開始時刻ちょうどに更新するため、更新間隔を開始時刻に合わせて上書きする。
+    if (this.app.favoriteTeamCard) {
+      const scheduledStartTime = this.app.favoriteTeamCard.scheduledStartTimeObject();
+      if (scheduledStartTime) {
+        const tillGameStartMsec = scheduledStartTime - this.lastUpdateMsec;
+        if (tillGameStartMsec < intervalMsec) {
+          intervalMsec = tillGameStartMsec;
+        }
+      }
+    }
 
     if (!navigator.onLine && !LOCAL) {
       return;
@@ -217,7 +230,7 @@ class YahooNPBCrawler extends EventTarget {
 
         const favoriteTeamCard = YahooNPBCard.findCardByTeamId(
           topPageData.cards,
-          this.preferences.favoriteTeamId
+          this.app.preferences.favoriteTeamId
         );
         return favoriteTeamCard;
       })

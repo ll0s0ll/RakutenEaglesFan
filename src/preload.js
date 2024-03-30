@@ -16,6 +16,28 @@ process.once('loaded', function () {
 global.electron = {};
 global.electron.name = process.env.npm_package_name;
 global.electron.shell = require('electron').shell;
+global.electron.ipcRenderer = require('electron').ipcRenderer;
+
+const argcStr = process.argv.find(e => e.search(/^--argc/) !== -1);
+const argc = argcStr ? argcStr.match(/^--argc=(\d+)/)[1] : 0;
+global.argv = argc > 0 ? process.argv.slice(-(argc)) : [];
+
+global.APP_VERSION = require('electron').remote
+  ? require('electron').remote.app.getVersion()
+  : process.env.npm_package_version; // test対策
+global.DEBUG = process.argv.includes('--debug') ? true : false;
+global.DISABLE_RADIO = process.argv.includes('--disable-radio') ? true : false;
+global.LOCAL = process.argv.includes('--local') ? true : false;
+
+if (process.argv.includes('--debug')) {
+  global.assert = require('assert');
+} else {
+  global.assert = function () {};
+}
+
+if (!process.argv.includes('--debug')) {
+  console.log = function () {};
+}
 
 const argcStr = process.argv.find(e => e.search(/^--argc/) !== -1);
 const argc = argcStr ? argcStr.match(/^--argc=(\d+)/)[1] : 0;

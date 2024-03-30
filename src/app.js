@@ -8,6 +8,7 @@ const App = {
   notifiedScorePlays: undefined,
   currentInning: undefined,
   currentStatus: undefined,
+  favoriteTeamCard: undefined,
 
   preferences: {
     // デフォルト値
@@ -280,8 +281,10 @@ const App = {
 
     GUI.init(App.preferences);
 
+    this.setupIPC();
     this.setupKeyboardShortcuts();
     this.setupNetworkStatusListener();
+    this.setupOnScrollListener();
 
     this.checkingUpdatesWorker = this.setupCheckingUpdatesWorker();
     this.rakutenFmTohokuCrawler = this.setupRakutenFmTohokuCrawler();
@@ -448,29 +451,32 @@ const App = {
     return worker;
   },
 
+  setupIPC: function () {
+    electron.ipcRenderer.on('resume', async (event, arg) => {
+      console.log('Resumed: ' + new Date().toLocaleTimeString());
+      await this.sleep(5);
+      this.yahooNpbCrawler.update(true);
+      this.rakutenFmTohokuCrawler.update(true);
+    });
+  },
+
   setupKeyboardShortcuts: function () {
     document.addEventListener('keyup', (event) => {
       switch (event.keyCode) {
         case 49: // Digit1 to 今日の試合
-          GUI.switchTab(0);
+          GUI.switchTab(GUI.Tabs.TODAY);
           break;
         case 50: // Digit2 to パ・リーグ
-          GUI.switchTab(1);
+          GUI.switchTab(GUI.Tabs.CARDS);
           break;
         case 51: // Digit3 to 順位表
-          GUI.switchTab(2);
+          GUI.switchTab(GUI.Tabs.STANDINGS);
           break;
         case 52: // Digit4 to ラジオ
-          GUI.switchTab(3);
+          GUI.switchTab(GUI.Tabs.RADIO);
           break;
         case 53: // Digit5 to 設定
-          GUI.switchTab(4);
-          break;
-        case 78: // KeyN to NOW ON AIR
-          GUI.switchRadioSectionTab(0);
-          break;
-        case 84: // KeyT to TIME TABLE
-          GUI.switchRadioSectionTab(1);
+          GUI.switchTab(GUI.Tabs.SETTINGS);
           break;
       }
     });
@@ -490,6 +496,11 @@ const App = {
     }.bind(this));
   },
 
+  setupOnScrollListener: function () {
+    window.addEventListener('scroll', function (e) {
+      GUI.saveYPositionOfActiveTab();
+    });
+
   setupRakutenFmTohokuCrawler: function () {
     const crawler = new RakutenFmTohokuCrawler(App.preferences);
     crawler.addEventListener('nowOnAirProgramUpdated', function (e) {
@@ -504,8 +515,10 @@ const App = {
   },
 
   setupYahooNPBCrawler: function () {
-    const crawler = new YahooNPBCrawler(App.preferences);
+    const crawler = new YahooNPBCrawler(App);
     crawler.addEventListener('detailPageData', function (e) {
+      App.favoriteTeamCard = e.data.card;
+
       GUI.renderTodaySection(
         e.data.card,
         e.data.date,
@@ -576,6 +589,10 @@ const App = {
     if (!DISABLE_RADIO) {
       this.rakutenFmTohokuCrawler.run();
     }
+  },
+
+  sleep (sec) {
+    return new Promise(resolve => setTimeout(resolve, sec * 1000));
   }
 }; // App
 

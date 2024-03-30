@@ -212,7 +212,10 @@ const YahooNPB = {
             // console.log(`Unknown info: ${info}`);
           }
         }
-        cards.push(c);
+
+        if (c.isTodaysCard()) {
+          cards.push(c);
+        }
         // console.log(c);
       }
     }
@@ -230,11 +233,23 @@ const YahooNPB = {
   parseDetailPage: function (detailPageHtmlDoc) {
     const htmlObj = new DOMParser().parseFromString(detailPageHtmlDoc, 'text/html');
     return {
+      highlight: this.parseHighlight(htmlObj),
       scoreBoard: this.parseScoreBoard(htmlObj),
       scorePlays: this.parseScorePlays(htmlObj),
       startingMembers: this.parseStartingMembers(htmlObj),
       videoList: this.parseVideoList(htmlObj)
     };
+  },
+
+  /**
+   * 詳細ページの'見どころ'をパースする。
+   *
+   * @param  {HTMLDocument} detailPageHtmlObj 試合詳細ページのオブジェクト
+   * @return {String} パースした'見どころ'の文章。見つからない場合はnull。
+   */
+  parseHighlight: function (detailPageHtmlObj) {
+    const highlight = detailPageHtmlObj.getElementsByClassName('bb-paragraph').item(0);
+    return highlight === null ? null : highlight.textContent;
   },
 
   /**
@@ -644,6 +659,12 @@ class YahooNPBCard {
 
     this.scoreBoard = undefined;
     this.scorePlays = undefined;
+
+    /**
+     * 見どころ・戦評の文章
+     * @type {String}
+     */
+    this.highlight = undefined;
   }
 
   get [Symbol.toStringTag] () {
@@ -832,9 +853,11 @@ class YahooNPBTeam {
       throw new TypeError('Invalid argument type, Number is expected.');
     }
 
-    if (YahooNPB.isPacificLeagueTeam(teamId) && YahooNPB.isPacificLeagueTeam(this.id)) {
+    if (YahooNPB.pacificLeagueTeams[Number(this.id)] !== undefined &&
+        YahooNPB.pacificLeagueTeams[Number(teamId)] !== undefined) {
       return true;
-    } else if (!YahooNPB.isPacificLeagueTeam(teamId) && !YahooNPB.isPacificLeagueTeam(this.id)) {
+    } else if (YahooNPB.centralLeagueTeams[Number(this.id)] !== undefined &&
+                YahooNPB.centralLeagueTeams[Number(teamId)] !== undefined) {
       return true;
     } else {
       return false;

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray } = require('electron');
+const { app, BrowserWindow, Menu, powerMonitor, Tray } = require('electron');
 const path = require('path');
 
 function buildMenu () {
@@ -109,6 +109,10 @@ app.dock.hide();
 app.on('ready', () => {
   _tray = createTray();
   _browserWindow = createWindow();
+
+  powerMonitor.on('resume', () => {
+    _browserWindow.webContents.send('resume', 'resume');
+  });
 });
 
 // 特定のキーボードショートカットだけを有効にするため、カスタムメニューバー設置。

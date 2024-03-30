@@ -51,6 +51,10 @@
               <tr id="homeTeamScores"></tr>
             </tbody>
           </table>
+          <div id="todaySectionHighlight" class="today-section__highlight">
+            <h3 id="todaySectionHighlightTitle" class="today-section__highlight-h3">見どころ・戦評</h3>
+            <p id="todaySectionHighlightParagraph" class="today-section__highlight-p"></p>
+          </div>
           <div id="todaySectionVideo" class="today-section__video">
             <h3 class="today-section__h3">動画</h3>
             <ul id="todaySectionVideoList" class="today-section__video-ul"></ul>
@@ -107,19 +111,13 @@
           <div class="radio-section__audio-player">
             <audio id="audioPlayer" controls></audio>
           </div>
-          <div id="radioSectionTabs">
-            <ul class="radio-section__tab-menu-ul">
-              <li class="radio-section__tab-menu-li"><a class="radio-section__selected-tab-menu" href="#radioSectionNowOnAirTab">NOW ON AIR</a></li><!--
-           --><li class="radio-section__tab-menu-li radio-section__tab-menu-li_left-border"><a href="#radioSectionTimeTableTab">TIME TABLE</a></li>
-            </ul>
-            <div id="radioSectionNowOnAirTab" class="radio-section__now-on-air">
-              <h3 class="radio-section__h3">NOW ON AIR</h3>
-              <div id="nowOnAirProgram"></div>
-            </div>
-            <div id="radioSectionTimeTableTab" class="radio-section__timetable">
-              <h3 class="radio-section__h3">TIME TABLE</h3>
-              <ul id="radioSectionTimeTableUl" class="radio-section__timetable-ul"></ul>
-            </div>
+          <div class="radio-section__now-on-air">
+            <h3 class="radio-section__h3">NOW ON AIR</h3>
+            <div id="nowOnAirProgram"></div>
+          </div>
+          <div class="radio-section__timetable">
+            <h3 class="radio-section__h3">TIME TABLE</h3>
+            <ul id="radioSectionTimeTableUl" class="radio-section__timetable-ul"></ul>
           </div>
         </div>
         <footer class="footer">

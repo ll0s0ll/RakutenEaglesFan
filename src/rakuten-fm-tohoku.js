@@ -160,6 +160,10 @@ const RakutenFmTohoku = {
     // const r6 = r5.match(/\](\s+)\}/g);
     // console.log(r6);
 
+    // タブを除去
+    const r7 = r6.replace(/\t/g, '');
+    // console.log(r7);
+
     // 配列の中のオブジェクトの始まりの不要な記号等を削除
     // const test2 = test[1].trim().replace(/\[(\s+)\{/g, '[{');
     // const test2 = test[1].trim().match(/\[(\s+)\{/g);
@@ -196,7 +200,7 @@ const RakutenFmTohoku = {
     // const objectText = s.match(/^tm_891\((.*)\);$/);
     // console.log(objectText)
 
-    const timeTableObj = JSON.parse(r6);
+    const timeTableObj = JSON.parse(r7);
     // console.log(timeTableObj);
     /*
     // 期間を使いやすい形式(unix time (milliseconds))でも保存する。

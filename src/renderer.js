@@ -1,6 +1,8 @@
 'use strict';
-/* global $ DEBUG DISABLE_RADIO electron RakutenFmTohoku YahooNPB YahooNPBCard */
+/* global $ APP_VERSION DEBUG DISABLE_RADIO electron RakutenFmTohoku YahooNPB YahooNPBCard */
 const GUI = {
+
+  yPositionsByTab: [],
 
   init: function (preferences) {
     this.updateNetworkStatus();
@@ -14,6 +16,14 @@ const GUI = {
     ServerErrorMsg: '情報の取得に失敗しました。',
     parseErrorMsg: '情報の解析に失敗しました。',
     unexpectedErrorMsg: '予期せぬエラーが発生しました。'
+  },
+
+  Tabs: {
+    TODAY: 0,
+    CARDS: 1,
+    STANDINGS: 2,
+    RADIO: 3,
+    SETTINGS: 4
   },
 
   renderStandingsSection: function (npbStandings, favoriteTeamId) {
@@ -81,15 +91,22 @@ const GUI = {
     GUI.today.constructH2();
     GUI.today.constructCard(card);
     GUI.today.constructScoreBoardTable(card);
+    GUI.today.constructHignlight(card);
     GUI.today.constructVideoList(card);
     GUI.today.constructScorePlay(card);
     GUI.today.constructNoGameMessage(card, favoriteTeamId);
     GUI.today.constructFooter(updateMsec);
   },
 
+  saveYPositionOfActiveTab: function () {
+    const activeTab = $('#tabs').tabs('option', 'active');
+    this.yPositionsByTab[activeTab] = window.scrollY;
+  },
+
   switchTab: function (tab) {
     // console.log('switchTab()');
     $('#tabs').tabs('option', 'active', tab);
+    window.scrollTo(0, this.yPositionsByTab[tab] ?? 0);
   },
 
   switchRadioSectionTab: function (tabNumber) {
@@ -503,7 +520,7 @@ const GUI = {
       } else if (error) {
         html += `予期せぬエラーが発生しました。（${dateStr} 現在）`;
       } else {
-        html += `最新のバージョンです。（${dateStr} 現在）`;
+        html += `最新のバージョン(${APP_VERSION})です。（${dateStr} 現在）`;
       }
 
       $('#updateMessage').html(html);
@@ -715,7 +732,7 @@ const GUI = {
         const endText = this.formatTimeString(program.end);
         const titleText = this.formatTitleString(program.title);
         const contentText = program.content.replace(/^<br>/, '');
-        html = `<p class="radio-section__now-on-air-term">${startText} - ${endText}</p><h4 class="radio-section__now-on-air-h4">${titleText}</h4><p class="radio-section__now-on-air-content">${contentText}</p>`;
+        html = `<h4 class="radio-section__now-on-air-h4">${titleText}</h4><p class="radio-section__now-on-air-term">${startText} - ${endText}</p><p class="radio-section__now-on-air-content">${contentText}</p>`;
       } else {
         html = '<p>番組情報はありません</p>';
       }
@@ -724,14 +741,6 @@ const GUI = {
     },
 
     renderTimeTable: function (timeTable) {
-      $('#radioSectionTabs').tabs({
-        show: { effect: 'fade', duration: 150 },
-        activate: function (event, ui) {
-          ui.newTab.children().addClass('radio-section__selected-tab-menu');
-          ui.oldTab.children().removeClass('radio-section__selected-tab-menu');
-        }
-      });
-
       const ul = document.getElementById('radioSectionTimeTableUl');
       ul.innerHTML = '';
       for (const p of timeTable) {
@@ -829,6 +838,28 @@ const GUI = {
       $('#todaySection h2').text(h2Text);
     },
 
+    constructHignlight: function (card) {
+      if (!card || !card.highlight) {
+        $('#todaySectionHighlight').hide();
+        return;
+      }
+
+      const h3 = document.getElementById('todaySectionHighlightTitle');
+      switch (card.currentStatus()) {
+        case YahooNPBCard.statuses.before:
+          h3.textContent = '見どころ';
+          break;
+        case YahooNPBCard.statuses.over:
+          h3.textContent = '戦評';
+          break;
+      }
+
+      const p = document.getElementById('todaySectionHighlightParagraph');
+      p.textContent = card.highlight;
+
+      $('#todaySectionHighlight').show();
+    },
+
     constructNoGameMessage: function (card, favoriteTeamId) {
       const todaySectionNoGame = $('#todaySectionNoGame');
       if (card) {
@@ -866,9 +897,9 @@ const GUI = {
         awayTr.innerHTML += `<td>${score ? score[0] : ''}</td>`;
         homeTr.innerHTML += `<td>${score ? score[1] : ''}</td>`;
 
-        awayTeamScoreTotal += Number(score && score[0].match(/\d+/) ? score[0] : 0);
-        homeTeamScoreTotal += Number(score && score[1].match(/\d+/) ? score[1] : 0);
-        // homeTeamScoreTotal += Number(score && score[1] !== '-' && score[1] !== 'X' ? score[1] : 0);
+        awayTeamScoreTotal += score ? Number(score[0].replace(/[^0-9]+/, '')) : 0;
+        homeTeamScoreTotal += score ? Number(score[1].replace(/[^0-9]+/, '')) : 0;
+
         inning++;
       }
 
